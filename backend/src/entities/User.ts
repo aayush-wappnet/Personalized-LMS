@@ -1,6 +1,5 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, BeforeInsert, BeforeUpdate, OneToMany } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany } from 'typeorm';
 import { Role } from '../types/role';
-import { hash } from 'bcrypt';
 import { Course } from './Course';
 import { Enrollment } from './Enrollment';
 import { QuizAttempt } from './QuizAttempt';
@@ -49,12 +48,4 @@ export class User {
 
   @UpdateDateColumn()
   updatedAt!: Date;
-
-  @BeforeInsert()
-  @BeforeUpdate()
-  async hashPassword() {
-    if (this.password) {
-      this.password = await hash(this.password, 10);
-    }
-  }
 }
