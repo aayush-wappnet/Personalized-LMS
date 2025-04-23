@@ -3,6 +3,7 @@ import { Role } from '../types/role';
 import { Course } from './Course';
 import { Enrollment } from './Enrollment';
 import { QuizAttempt } from './QuizAttempt';
+import { Notification } from './Notification'; // Import Notification
 
 @Entity('users')
 export class User {
@@ -42,6 +43,9 @@ export class User {
 
   @OneToMany(() => QuizAttempt, quizAttempt => quizAttempt.student)
   quizAttempts!: QuizAttempt[];
+
+  @OneToMany(() => Notification, notification => notification.recipient) // Add relation
+  notifications!: Notification[];
 
   @CreateDateColumn()
   createdAt!: Date;

@@ -1,17 +1,52 @@
 import { FastifyPluginAsync } from 'fastify';
-import { createCourse, getCourses, enrollCourse } from '../controllers/course.controller';
-import { authGuard } from '../middlewares/auth.guard';
-import { CreateCourseSchema, GetCoursesSchema, EnrollCourseSchema } from '../schemas/course.schema';
+import {
+  CreateCourseSchema,
+  GetCoursesSchema,
+  EnrollCourseSchema,
+  UpdateCourseSchema,
+  DeleteCourseSchema,
+  GetEnrolledCourseByIdSchema,
+  ApproveCourseSchema
+} from '../schemas/course.schema';
+import {
+  createCourse,
+  getCourses,
+  enrollCourse,
+  updateCourse,
+  deleteCourse,
+  getEnrolledCourses,
+  getEnrolledCourseById,
+  approveCourse
+} from '../controllers/course.controller';
+import { authGuard } from '../middlewares/auth.guard'; // Import authGuard
 import { Role } from '../types/role';
 
 const courseRoutes: FastifyPluginAsync = async (fastify) => {
+  // Instructor and Admin: Create course
   fastify.post('/courses', {
     schema: CreateCourseSchema,
     preHandler: authGuard,
-    config: { requiredRole: Role.INSTRUCTOR }, // Only instructors can create
+    config: { requiredRole: Role.INSTRUCTOR },
     handler: createCourse,
   });
 
+  // Instructor and Admin: Update course
+  fastify.put('/courses/:id', {
+    schema: UpdateCourseSchema,
+    preHandler: authGuard,
+    config: { requiredRole: Role.INSTRUCTOR },
+    handler: updateCourse,
+  });
+
+  // Instructor and Admin: Delete course
+  fastify.delete('/courses/:id', {
+    schema: DeleteCourseSchema,
+    preHandler: authGuard,
+    config: { requiredRole: undefined }, // Both Instructor and Admin can delete
+    handler: deleteCourse,
+  });
+
+  // All roles: Get courses (filtered by role)
   fastify.get('/courses', {
     schema: GetCoursesSchema,
     preHandler: authGuard,
@@ -19,10 +54,34 @@ const courseRoutes: FastifyPluginAsync = async (fastify) => {
     handler: getCourses,
   });
 
+  // Student: Get enrolled courses
+  fastify.get('/courses/enrolled', {
+    preHandler: authGuard,
+    config: { requiredRole: Role.STUDENT },
+    handler: getEnrolledCourses,
+  });
+
+  // Student: Get specific enrolled course by ID
+  fastify.get('/courses/enrolled/:id', {
+    schema: GetEnrolledCourseByIdSchema,
+    preHandler: authGuard,
+    config: { requiredRole: Role.STUDENT },
+    handler: getEnrolledCourseById,
+  });
+
+  // Admin: Approve or reject course
+  fastify.put('/courses/:id/approve', {
+    schema: ApproveCourseSchema,
+    preHandler: authGuard,
+    config: { requiredRole: Role.ADMIN },
+    handler: approveCourse,
+  });
+
+  // Student: Enroll in a course
   fastify.post('/courses/enroll', {
     schema: EnrollCourseSchema,
     preHandler: authGuard,
-    config: { requiredRole: Role.STUDENT }, // Only students can enroll
+    config: { requiredRole: Role.STUDENT },
     handler: enrollCourse,
   });
 };

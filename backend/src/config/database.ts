@@ -9,6 +9,7 @@ import { Question } from '../entities/Question';
 import { QuizAttempt } from '../entities/QuizAttempt';
 import { Enrollment } from '../entities/Enrollment';
 import { ModuleProgress } from '../entities/ModuleProgress';
+import { Notification } from '../entities/Notification';
 
 dotenv.config();
 
@@ -21,7 +22,7 @@ export const AppDataSource = new DataSource({
   database: process.env.DB_NAME,
   synchronize: process.env.NODE_ENV === 'development', // Set to false in production
   logging: process.env.NODE_ENV === 'development',
-  entities: [User, Course, Module, Content, Quiz, Question, QuizAttempt, Enrollment, ModuleProgress],
+  entities: [User, Course, Module, Content, Quiz, Question, QuizAttempt, Enrollment, ModuleProgress,Notification],
   migrations: [],
   subscribers: [],
 });

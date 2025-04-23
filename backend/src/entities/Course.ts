@@ -17,6 +17,13 @@ export class Course {
   @Column()
   thumbnailUrl!: string; // Stored in Cloudinary
 
+  @Column({
+    type: 'enum',
+    enum: ['PENDING', 'APPROVED', 'REJECTED'],
+    default: 'PENDING'
+  })
+  approvalStatus!: 'PENDING' | 'APPROVED' | 'REJECTED'; // New field for approval workflow
+
   @ManyToOne(() => User, user => user.courses)
   instructor!: User;
 

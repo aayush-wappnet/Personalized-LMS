@@ -7,6 +7,15 @@ import fastifyMultipart from '@fastify/multipart';
 import { CourseService } from './services/course.service';
 import cloudinaryPlugin from './plugins/cloudinary-plugin';
 import courseRoutes from './routes/course.routes';
+import websocketPlugin from './plugins/websocket-plugin';
+import emailPlugin from './plugins/email-plugin';
+import notificationRoutes from './routes/notification.routes';
+import { NotificationService } from './services/notification.service';
+import { ModuleService } from './services/module.service';
+import contentRoutes from './routes/content.routes';
+import { ContentService } from './services/content.service';
+import moduleRoutes from './routes/module.routes';
+
 
 export const app = Fastify({
   logger: process.env.NODE_ENV === 'development',
@@ -24,15 +33,27 @@ app.register(fastifyMultipart, {
 });
 
 app.register(databasePlugin);
-app.register(authPlugin);
 app.register(cloudinaryPlugin);
+app.register(websocketPlugin);
+app.register(emailPlugin);
+app.register(authPlugin);
 
-const courseService = new CourseService(app); // Instantiate with fastify instance
-
-app.register(authRoutes, { prefix: '/api/auth' });
 app.register((instance, opts, done) => {
-  instance.decorate('courseService', courseService); // Decorate fastify with courseService
+  const courseService = new CourseService(instance);
+  const moduleService = new ModuleService(instance);
+  const contentService = new ContentService(instance);
+  const notificationService = new NotificationService(instance);
+
+  instance.decorate('courseService', courseService);
+  instance.decorate('moduleService', moduleService);
+  instance.decorate('contentService', contentService);
+  instance.decorate('notificationService', notificationService);
+
+  instance.register(authRoutes, { prefix: '/api/auth' });
   instance.register(courseRoutes, { prefix: '/api' });
+  instance.register(moduleRoutes, { prefix: '/api' });
+  instance.register(contentRoutes, { prefix: '/api' });
+  instance.register(notificationRoutes, { prefix: '/api' });
   done();
 });
 
