@@ -5,7 +5,7 @@ export const CreateCourseSchema = {
   body: Type.Object({
     title: Type.String(),
     description: Type.String(),
-    thumbnail: Type.Optional(Type.Any()), // Handled as multipart
+    thumbnail: Type.Optional(Type.Any()),
   }),
 };
 
@@ -16,7 +16,7 @@ export const UpdateCourseSchema = {
   body: Type.Object({
     title: Type.String(),
     description: Type.String(),
-    thumbnail: Type.Optional(Type.Any()), // Handled as multipart
+    thumbnail: Type.Optional(Type.Any()),
   }),
 };
 
@@ -27,7 +27,7 @@ export const DeleteCourseSchema = {
 };
 
 export const GetCoursesSchema = {
-  querystring: Type.Object({ // Changed from 'query' to 'querystring'
+  querystring: Type.Object({
     role: Type.Optional(Type.Enum(Role)),
   }),
 };
@@ -42,7 +42,7 @@ export const ApproveCourseSchema = {
   params: Type.Object({
     id: Type.Number(),
   }),
-  querystring: Type.Object({ // Changed from 'query' to 'querystring'
+  querystring: Type.Object({
     status: Type.Enum({ APPROVED: 'APPROVED', REJECTED: 'REJECTED' }),
   }),
 };
@@ -50,5 +50,11 @@ export const ApproveCourseSchema = {
 export const EnrollCourseSchema = {
   body: Type.Object({
     courseId: Type.Number(),
+  }),
+};
+
+export const GetCourseByIdSchema = {
+  params: Type.Object({
+    id: Type.Number(),
   }),
 };

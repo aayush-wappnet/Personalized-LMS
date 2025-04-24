@@ -6,7 +6,8 @@ import {
   UpdateCourseSchema,
   DeleteCourseSchema,
   GetEnrolledCourseByIdSchema,
-  ApproveCourseSchema
+  ApproveCourseSchema,
+  GetCourseByIdSchema
 } from '../schemas/course.schema';
 import {
   createCourse,
@@ -16,9 +17,10 @@ import {
   deleteCourse,
   getEnrolledCourses,
   getEnrolledCourseById,
-  approveCourse
+  approveCourse,
+  getCourseById
 } from '../controllers/course.controller';
-import { authGuard } from '../middlewares/auth.guard'; // Import authGuard
+import { authGuard } from '../middlewares/auth.guard';
 import { Role } from '../types/role';
 
 const courseRoutes: FastifyPluginAsync = async (fastify) => {
@@ -42,7 +44,7 @@ const courseRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.delete('/courses/:id', {
     schema: DeleteCourseSchema,
     preHandler: authGuard,
-    config: { requiredRole: undefined }, // Both Instructor and Admin can delete
+    config: { requiredRole: undefined },
     handler: deleteCourse,
   });
 
@@ -50,8 +52,16 @@ const courseRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.get('/courses', {
     schema: GetCoursesSchema,
     preHandler: authGuard,
-    config: { requiredRole: undefined }, // All roles can view based on their access
+    config: { requiredRole: undefined },
     handler: getCourses,
+  });
+
+  // Student: Get specific course by ID
+  fastify.get('/courses/:id', {
+    schema: GetCourseByIdSchema,
+    preHandler: authGuard,
+    config: { requiredRole: Role.STUDENT },
+    handler: getCourseById,
   });
 
   // Student: Get enrolled courses

@@ -123,7 +123,7 @@ export class CourseService {
     course.title = data.title;
     course.description = data.description;
     course.thumbnailUrl = thumbnailUrl;
-    course.approvalStatus = 'PENDING'; // Reset to pending after update
+    course.approvalStatus = 'PENDING';
     const updatedCourse = await this.courseRepository.save(course);
 
     const admins = await this.userRepository.find({ where: { role: Role.ADMIN } });
@@ -204,6 +204,17 @@ export class CourseService {
     }
 
     return formatCourseResponse(enrollment.course);
+  }
+
+  async getCourseById(courseId: number) {
+    const course = await this.courseRepository.findOne({
+      where: { id: courseId, approvalStatus: 'APPROVED' },
+      relations: ['instructor'],
+    });
+    if (!course) {
+      throw new Error('Course not found or not approved');
+    }
+    return formatCourseResponse(course);
   }
 
   async approveCourse(adminId: number, courseId: number, status: 'APPROVED' | 'REJECTED') {

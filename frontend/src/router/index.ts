@@ -17,6 +17,42 @@ const routes = [
     name: 'Register',
     component: () => import('../views/auth/Register.vue'),
   },
+  {
+    path: '/student/enrolled-courses',
+    name: 'EnrolledCourses',
+    component: () => import('../views/student/EnrolledCourses.vue'),
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/courses/enrolled/:id',
+    name: 'CourseDetail',
+    component: () => import('../views/student/CourseDetail.vue'),
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/courses/:id',
+    name: 'CourseInfo',
+    component: () => import('../views/student/CourseInfo.vue'),
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/courses',
+    name: 'Courses',
+    component: () => import('../views/student/Courses.vue'),
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/instructor/add-course',
+    name: 'AddCourse',
+    component: () => import('../views/instructor/AddCourse.vue'),
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/instructor/courses',
+    name: 'InstructorCourses',
+    component: () => import('../views/instructor/InstructorCourses.vue'),
+    meta: { requiresAuth: true },
+  },
 ];
 
 const router = createRouter({
@@ -28,7 +64,10 @@ router.beforeEach(async (to, from, next) => {
   const authStore = useAuthStore();
   await authStore.initializeAuth();
 
-  // Redirect authenticated users away from login/register
+  if (to.meta.requiresAuth && !authStore.isAuthenticated) {
+    return next({ name: 'Login' });
+  }
+
   if (authStore.isAuthenticated && ['Login', 'Register'].includes(to.name as string)) {
     return next({ name: 'Home' });
   }

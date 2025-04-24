@@ -4,20 +4,20 @@
       src="../public/logo.png"
       max-height="40"
       max-width="40"
-      class="mr-2"
+      class="mr-4 ml-4"
       alt="LMS Logo"
     ></v-img>
-    <v-toolbar-title>LMS Platform</v-toolbar-title>
+    <v-toolbar-title>EduKate</v-toolbar-title>
     <v-spacer></v-spacer>
-    <v-btn v-if="!isAuthenticated" to="/" text>
+    <v-btn v-if="!isAuthenticated" to="/" text class="mr-4">
       <v-icon left>mdi-home</v-icon>
       Home
     </v-btn>
-    <v-btn v-if="!isAuthenticated" to="/courses" text>
+    <v-btn v-if="!isAuthenticated" to="/courses" text class="mr-4">
       <v-icon left>mdi-book-open</v-icon>
       Courses
     </v-btn>
-    <v-btn v-if="!isAuthenticated" to="/login" text>
+    <v-btn v-if="!isAuthenticated" to="/login" text class="mr-4">
       <v-icon left>mdi-login</v-icon>
       Login
     </v-btn>
@@ -28,11 +28,11 @@
 
     <!-- Student Menu -->
     <template v-if="isAuthenticated && user?.role === 'student'">
-      <v-btn to="/dashboard" text>
+      <v-btn to="/dashboard" text class="mr-4">
         <v-icon left>mdi-view-dashboard</v-icon>
         Dashboard
       </v-btn>
-      <v-btn to="/courses" text>
+      <v-btn to="/courses" text class="mr-4">
         <v-icon left>mdi-book-open</v-icon>
         Courses
       </v-btn>
@@ -44,15 +44,15 @@
 
     <!-- Instructor Menu -->
     <template v-if="isAuthenticated && user?.role === 'instructor'">
-      <v-btn to="/dashboard" text>
+      <v-btn to="/dashboard" text class="mr-4">
         <v-icon left>mdi-view-dashboard</v-icon>
         Dashboard
       </v-btn>
-      <v-btn to="/instructor/add-course" text>
+      <v-btn to="/instructor/add-course" text class="mr-4">
         <v-icon left>mdi-plus-box</v-icon>
         Add Course
       </v-btn>
-      <v-btn to="/instructor/add-module" text>
+      <v-btn to="/instructor/add-module" text class="mr-4">
         <v-icon left>mdi-plus-box</v-icon>
         Add Module
       </v-btn>
@@ -64,7 +64,7 @@
 
     <!-- Admin Menu -->
     <template v-if="isAuthenticated && user?.role === 'admin'">
-      <v-btn to="/dashboard" text>
+      <v-btn to="/dashboard" text class="mr-4">
         <v-icon left>mdi-view-dashboard</v-icon>
         Dashboard
       </v-btn>
@@ -75,13 +75,13 @@
     </template>
 
     <!-- User Actions -->
-    <v-menu v-if="isAuthenticated" offset-y left nudge-left="10">
+    <v-menu v-if="isAuthenticated" offset-y left nudge-left="50" >
       <template v-slot:activator="{ props }">
         <v-btn icon v-bind="props">
           <v-icon>mdi-account-circle</v-icon>
         </v-btn>
       </template>
-      <v-list dense style="max-height: 200px; ;">
+      <v-list dense style="max-height: 200px; overflow-y: hidden; min-width: 150px;">
         <v-list-item>
           <v-list-item-title>{{ user?.userName }}</v-list-item-title>
         </v-list-item>
@@ -121,6 +121,7 @@ const logout = async () => {
 .v-btn {
   text-transform: none;
   font-weight: 500;
+  margin-inline: 10px;
 }
 
 .logout-item {
@@ -129,12 +130,10 @@ const logout = async () => {
 
 .logout-item:hover {
   background-color: #e3f2fd;
-  /* color: #96c1eb; */
+  color: #1976d2;
 }
 
 .logout-item:hover .v-list-item-title {
-  color: #000;
- 
-  
+  color: #1976d2;
 }
 </style>

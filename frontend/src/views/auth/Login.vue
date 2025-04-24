@@ -2,8 +2,11 @@
   <v-container class="fill-height">
     <v-row align="center" justify="center">
       <v-col cols="12" sm="8" md="4">
-        <v-card class="pa-6 login-card" elevation="6">
-          <v-card-title class="text-h5 text-center primary--text " align="center" justify="center">Login</v-card-title>
+        <v-card class="pa-6 login-card elevation-6" :class="{ 'scale-up': showCard }">
+          <v-card-title class="text-h4 text-center primary--text mb-4">
+            <v-icon large left>mdi-login</v-icon>
+            Login
+          </v-card-title>
           <v-card-text>
             <v-form @submit.prevent="onSubmit">
               <v-text-field
@@ -15,11 +18,13 @@
                 required
                 dense
                 outlined
-                class="mb-3"
+                class="mb-4 transition-input"
+                @focus="onFocus"
+                @blur="onBlur"
               ></v-text-field>
               <v-text-field
                 v-model="password"
-                :label="'Password'"
+                label="Password"
                 :rules="rules.password"
                 :type="showPassword ? 'text' : 'password'"
                 prepend-icon="mdi-lock"
@@ -28,21 +33,26 @@
                 required
                 dense
                 outlined
-                class="mb-3"
+                class="mb-4 transition-input"
+                @focus="onFocus"
+                @blur="onBlur"
               ></v-text-field>
               <v-btn
                 color="primary"
                 type="submit"
                 block
                 :loading="loading"
-                class="mt-4"
+                class="mt-6 transition-btn"
+                :class="{ 'hover-btn': isHovered }"
+                @mouseover="isHovered = true"
+                @mouseleave="isHovered = false"
               >
                 Login
               </v-btn>
             </v-form>
             <v-row class="mt-4">
               <v-col class="text-center">
-                <router-link to="/register" class="text-decoration-none secondary--text">
+                <router-link to="/register" class="text-decoration-none secondary--text transition-link">
                   Don't have an account? Register
                 </router-link>
               </v-col>
@@ -55,7 +65,7 @@
 </template>
 
 <script lang="ts" setup>
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '../../stores/auth.store';
 import { useToast } from '../../composables/useToast';
@@ -68,14 +78,18 @@ const authStore = useAuthStore();
 const { showToast } = useToast();
 const loading = ref(false);
 const showPassword = ref(false);
+const isHovered = ref(false);
+const showCard = ref(false);
 
-// Form validation schema
+onMounted(() => {
+  setTimeout(() => (showCard.value = true), 100);
+});
+
 const schema = yup.object({
   email: yup.string().required('Email is required').email('Invalid email format'),
   password: yup.string().required('Password is required').min(6, 'Password must be at least 6 characters'),
 });
 
-// Initialize vee-validate form with explicit type
 const { handleSubmit } = useForm<AuthLogin>({
   validationSchema: schema,
 });
@@ -83,13 +97,11 @@ const { handleSubmit } = useForm<AuthLogin>({
 const { value: email } = useField<string>('email');
 const { value: password } = useField<string>('password');
 
-// Rules for Vuetify form
 const rules = {
   email: [(v: string) => !!v || 'Email is required', (v: string) => /.+@.+\..+/.test(v) || 'Invalid email'],
   password: [(v: string) => !!v || 'Password is required', (v: string) => v.length >= 6 || 'Minimum 6 characters'],
 };
 
-// Handle form submission
 const onSubmit = handleSubmit(async (values: AuthLogin) => {
   loading.value = true;
   try {
@@ -106,24 +118,45 @@ const onSubmit = handleSubmit(async (values: AuthLogin) => {
     loading.value = false;
   }
 });
+
+const onFocus = () => {};
+const onBlur = () => {};
 </script>
 
 <style scoped>
 .login-card {
-  border-radius: 8px;
+  border-radius: 12px;
   border: 1px solid #e0e0e0;
+  transition: transform 0.3s ease;
 }
 
-.v-text-field--outlined fieldset {
-  border-color: #bdbdbd;
+.scale-up {
+  transform: scale(1.02);
 }
 
-.v-text-field--outlined:hover fieldset {
-  border-color: #1976d2;
+.transition-input {
+  transition: all 0.3s ease;
 }
 
-.v-btn {
-  text-transform: none;
-  font-weight: 500;
+.transition-input:focus-within {
+  transform: translateY(-2px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.transition-btn {
+  transition: all 0.3s ease;
+}
+
+.hover-btn {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.transition-link {
+  transition: color 0.3s ease;
+}
+
+.transition-link:hover {
+  color: #1976d2 !important;
 }
 </style>

@@ -10,7 +10,8 @@ import {
   UpdateCourseSchema,
   DeleteCourseSchema,
   GetEnrolledCourseByIdSchema,
-  ApproveCourseSchema
+  ApproveCourseSchema,
+  GetCourseByIdSchema
 } from '../schemas/course.schema';
 
 type CreateCourseBody = {
@@ -37,8 +38,9 @@ type UpdateCourseParams = Static<typeof UpdateCourseSchema.params>;
 type DeleteCourseParams = Static<typeof DeleteCourseSchema.params>;
 type GetEnrolledCourseByIdParams = Static<typeof GetEnrolledCourseByIdSchema.params>;
 type ApproveCourseParams = Static<typeof ApproveCourseSchema.params>;
-type ApproveCourseQuery = Static<typeof ApproveCourseSchema.querystring>; // Use querystring
-type GetCoursesQuery = Static<typeof GetCoursesSchema.querystring>; // Use querystring
+type ApproveCourseQuery = Static<typeof ApproveCourseSchema.querystring>;
+type GetCoursesQuery = Static<typeof GetCoursesSchema.querystring>;
+type GetCourseByIdParams = Static<typeof GetCourseByIdSchema.params>;
 
 export const createCourse = async (request: FastifyRequest<{ Body: CreateCourseBody }>, reply: FastifyReply) => {
   try {
@@ -155,7 +157,7 @@ export const deleteCourse = async (request: FastifyRequest<{ Params: DeleteCours
 export const getCourses = async (request: FastifyRequest<{ Querystring: GetCoursesQuery }>, reply: FastifyReply) => {
   try {
     const user = request.user as { id: number; role: Role };
-    const { role } = request.query as { role?: Role }; // Cast query to the expected type
+    const { role } = request.query as { role?: Role };
     const courses = await request.server.courseService.getCourses(user.id, role || user.role);
     reply.send(courses);
   } catch (err: any) {
@@ -196,7 +198,7 @@ export const approveCourse = async (request: FastifyRequest<{ Params: ApproveCou
       throw new Error('Only admins can approve or reject courses');
     }
     const { id } = request.params;
-    const { status } = request.query as { status: 'APPROVED' | 'REJECTED' }; // Cast query to the expected type
+    const { status } = request.query as { status: 'APPROVED' | 'REJECTED' };
     const course = await request.server.courseService.approveCourse(user.id, id, status);
     reply.send({ message: `Course ${status.toLowerCase()} successfully`, course });
   } catch (err: any) {
@@ -212,5 +214,18 @@ export const enrollCourse = async (request: FastifyRequest<{ Body: Static<typeof
     reply.code(200).send({ message: 'Enrolled successfully' });
   } catch (err: any) {
     reply.code(403).send({ error: err.message });
+  }
+};
+
+export const getCourseById = async (request: FastifyRequest<{ Params: GetCourseByIdParams }>, reply: FastifyReply) => {
+  try {
+    const user = request.user as { id: number; role: Role };
+    if (user.role !== Role.STUDENT) {
+      throw new Error('Only students can view course details');
+    }
+    const course = await request.server.courseService.getCourseById(request.params.id);
+    reply.send(course);
+  } catch (err: any) {
+    reply.code(404).send({ error: err.message });
   }
 };
