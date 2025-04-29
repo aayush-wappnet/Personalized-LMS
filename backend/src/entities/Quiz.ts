@@ -1,6 +1,7 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany ,ManyToOne} from 'typeorm';
 import { Question } from './Question';
 import { QuizAttempt } from './QuizAttempt';
+import { Module } from './Module'; // Import the Module entity
 
 @Entity('quizzes')
 export class Quiz {
@@ -13,8 +14,8 @@ export class Quiz {
   @Column({ nullable: true })
   description!: string;
 
-  @Column()
-  moduleId!: number;
+  @ManyToOne(() => Module, module => module.quizzes) // Replace moduleId with a relation
+  module!: Module;
 
   @OneToMany(() => Question, question => question.quiz)
   questions!: Question[];

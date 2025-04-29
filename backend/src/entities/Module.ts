@@ -2,6 +2,7 @@ import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateCol
 import { Course } from './Course';
 import { Content } from './Content';
 import { ModuleProgress } from './ModuleProgress';
+import { Quiz } from './Quiz'; // Import the Quiz entity
 
 @Entity('modules')
 export class Module {
@@ -19,6 +20,9 @@ export class Module {
 
   @OneToMany(() => Content, content => content.module)
   contents!: Content[];
+
+  @OneToMany(() => Quiz, quiz => quiz.module)
+  quizzes!: Quiz[];
 
   @OneToMany(() => ModuleProgress, progress => progress.module)
   progress!: ModuleProgress[];

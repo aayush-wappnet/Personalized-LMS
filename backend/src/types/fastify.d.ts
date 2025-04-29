@@ -19,6 +19,9 @@ declare module 'fastify' {
     moduleService: ModuleService; // Add moduleService
     contentService: ContentService; // Add contentService
     notificationService: NotificationService; // Add notificationService
+    quizService: QuizService; // Add this
+    quizAttemptService: QuizAttemptService; // Add this
+    moduleProgressService: ModuleProgressService; // Add this
   }
 
   interface FastifyRequest {
