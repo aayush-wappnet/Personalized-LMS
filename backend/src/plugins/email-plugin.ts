@@ -1,29 +1,23 @@
 import { FastifyPluginAsync } from 'fastify';
 import * as nodemailer from 'nodemailer';
-import * as dotenv from 'dotenv';
-
-dotenv.config();
 
 const emailPlugin: FastifyPluginAsync = async (fastify) => {
   const transporter = nodemailer.createTransport({
-    service: 'gmail', // Or another email service
+    service: 'gmail', // Use your email service
     auth: {
-      user: process.env.EMAIL_USER, // Add to .env
-      pass: process.env.EMAIL_PASS, // Add to .env
+      user: process.env.EMAIL_USER, // Your email
+      pass: process.env.EMAIL_PASS, // Your email password or app-specific password
     },
   });
 
-  fastify.decorate('email', {
-    send: async (to: string, subject: string, text: string) => {
-      const mailOptions = {
-        from: process.env.EMAIL_USER,
-        to,
-        subject,
-        text,
-      };
-      await transporter.sendMail(mailOptions);
-    },
-  });
+  fastify.decorate('emailTransporter', transporter);
 };
+
+// Extend Fastify instance types
+declare module 'fastify' {
+  interface FastifyInstance {
+    emailTransporter: nodemailer.Transporter;
+  }
+}
 
 export default emailPlugin;

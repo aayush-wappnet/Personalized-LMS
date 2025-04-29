@@ -18,7 +18,7 @@ const routes = [
     component: () => import('../views/auth/Register.vue'),
   },
   {
-    path: '/student/enrolled-courses',
+    path: '/enrolled-courses',
     name: 'EnrolledCourses',
     component: () => import('../views/student/EnrolledCourses.vue'),
     meta: { requiresAuth: true },
@@ -51,6 +51,12 @@ const routes = [
     path: '/instructor/courses',
     name: 'InstructorCourses',
     component: () => import('../views/instructor/InstructorCourses.vue'),
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/admin/courses',
+    name: 'AdminCourses',
+    component: () => import('../views/admin/AdminCourses.vue'),
     meta: { requiresAuth: true },
   },
 ];

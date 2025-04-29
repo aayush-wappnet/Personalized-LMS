@@ -60,7 +60,7 @@ const courseRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.get('/courses/:id', {
     schema: GetCourseByIdSchema,
     preHandler: authGuard,
-    config: { requiredRole: Role.STUDENT },
+    config: { requiredRole: Role.STUDENT},
     handler: getCourseById,
   });
 

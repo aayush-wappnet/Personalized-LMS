@@ -1,22 +1,25 @@
 <template>
   <v-app-bar app color="primary" dark>
     <v-img
-      src="../public/logo.png"
+      src="https://cdn.vuetifyjs.com/images/logos/vuetify-logo-dark.png" 
       max-height="40"
       max-width="40"
       class="mr-4 ml-4"
       alt="LMS Logo"
     ></v-img>
-    <v-toolbar-title>EduKate</v-toolbar-title>
+    <v-toolbar-title>
+      <span class="smart-text">Smart</span>
+      <span class="learn-text"> Learn</span>
+    </v-toolbar-title>
     <v-spacer></v-spacer>
-    <v-btn v-if="!isAuthenticated" to="/" text class="mr-4">
+    <v-btn  to="/" text class="mr-4">
       <v-icon left>mdi-home</v-icon>
       Home
     </v-btn>
-    <v-btn v-if="!isAuthenticated" to="/courses" text class="mr-4">
+    <!-- <v-btn v-if="!isAuthenticated" to="/courses" text class="mr-4">
       <v-icon left>mdi-book-open</v-icon>
       Courses
-    </v-btn>
+    </v-btn> -->
     <v-btn v-if="!isAuthenticated" to="/login" text class="mr-4">
       <v-icon left>mdi-login</v-icon>
       Login
@@ -28,10 +31,10 @@
 
     <!-- Student Menu -->
     <template v-if="isAuthenticated && user?.role === 'student'">
-      <v-btn to="/dashboard" text class="mr-4">
+      <!-- <v-btn to="/dashboard" text class="mr-4">
         <v-icon left>mdi-view-dashboard</v-icon>
         Dashboard
-      </v-btn>
+      </v-btn> -->
       <v-btn to="/courses" text class="mr-4">
         <v-icon left>mdi-book-open</v-icon>
         Courses
@@ -135,5 +138,17 @@ const logout = async () => {
 
 .logout-item:hover .v-list-item-title {
   color: #1976d2;
+}
+
+.smart-text {
+  color: #152230; /* Blue for "Smart" */
+  font-weight: 800;
+  font-size: xx-large;
+}
+
+.learn-text {
+  color: #d1cedc; /* Green for "Learn" */
+  font-weight: 800;
+  font-size: xx-large;
 }
 </style>

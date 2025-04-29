@@ -172,7 +172,7 @@ export class CourseService {
     } else {
       throw new Error('Invalid role');
     }
-    return courses.map(formatCourseResponse);
+    return courses.map(course => formatCourseResponse(course, role));
   }
 
   async getEnrolledCourses(studentId: number) {
@@ -186,7 +186,7 @@ export class CourseService {
       relations: ['course', 'course.instructor'],
     });
     const courses = enrollments.map(enrollment => enrollment.course);
-    return courses.map(formatCourseResponse);
+    return courses.map(course => formatCourseResponse(course));
   }
 
   async getEnrolledCourseById(studentId: number, courseId: number) {
