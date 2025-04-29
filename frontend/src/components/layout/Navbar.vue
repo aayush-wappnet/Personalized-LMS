@@ -55,10 +55,10 @@
         <v-icon left>mdi-plus-box</v-icon>
         Add Course
       </v-btn>
-      <v-btn to="/instructor/add-module" text class="mr-4">
+      <!-- <v-btn to="/instructor/add-module" text class="mr-4">
         <v-icon left>mdi-plus-box</v-icon>
         Add Module
-      </v-btn>
+      </v-btn> -->
       <v-btn to="/instructor/courses" text>
         <v-icon left>mdi-book-open</v-icon>
         My Courses

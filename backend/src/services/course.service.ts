@@ -264,4 +264,38 @@ export class CourseService {
 
     return { message: 'Enrolled successfully' };
   }
+
+  async markCourseCompleted(studentId: number, courseId: number) {
+    const student = await this.userRepository.findOneOrFail({ where: { id: studentId } });
+    if (student.role !== Role.STUDENT) {
+      throw new Error('Only students can mark courses as completed');
+    }
+
+    const enrollment = await this.enrollmentRepository.findOneOrFail({
+      where: { student: { id: studentId }, course: { id: courseId } },
+      relations: ['course'],
+    });
+    if (enrollment.isCompleted) throw new Error('Course already marked as completed');
+
+    enrollment.isCompleted = true;
+    await this.enrollmentRepository.save(enrollment);
+
+    // Gamification: Award points and badges for course completion
+    student.points = (student.points ?? 0) + 100; // Award 100 points for completing a course
+    let badges: string[] = student.badges ? JSON.parse(student.badges) : [];
+    if (!badges.includes('Course Champion')) {
+      badges.push('Course Champion');
+      student.badges = JSON.stringify(badges);
+      // Notify user about the badge
+      await this.notificationService.createNotification(
+        student.id,
+        'Congratulations! You earned the "Course Champion" badge for completing your first course!',
+        'Badge',
+        courseId
+      );
+    }
+    await this.userRepository.save(student);
+
+    return { id: enrollment.id, message: 'Course marked as completed' };
+  }
 }

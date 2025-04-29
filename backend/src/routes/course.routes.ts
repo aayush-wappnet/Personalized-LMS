@@ -7,7 +7,8 @@ import {
   DeleteCourseSchema,
   GetEnrolledCourseByIdSchema,
   ApproveCourseSchema,
-  GetCourseByIdSchema
+  GetCourseByIdSchema,
+  MarkCourseCompletedSchema, // Add this
 } from '../schemas/course.schema';
 import {
   createCourse,
@@ -18,7 +19,8 @@ import {
   getEnrolledCourses,
   getEnrolledCourseById,
   approveCourse,
-  getCourseById
+  getCourseById,
+  markCourseCompleted, // Add this
 } from '../controllers/course.controller';
 import { authGuard } from '../middlewares/auth.guard';
 import { Role } from '../types/role';
@@ -60,7 +62,7 @@ const courseRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.get('/courses/:id', {
     schema: GetCourseByIdSchema,
     preHandler: authGuard,
-    config: { requiredRole: Role.STUDENT},
+    config: { requiredRole: undefined },
     handler: getCourseById,
   });
 
@@ -93,6 +95,14 @@ const courseRoutes: FastifyPluginAsync = async (fastify) => {
     preHandler: authGuard,
     config: { requiredRole: Role.STUDENT },
     handler: enrollCourse,
+  });
+
+  // Student: Mark course as completed
+  fastify.put('/courses/:courseId/complete', {
+    schema: MarkCourseCompletedSchema, // Add this
+    preHandler: authGuard,
+    config: { requiredRole: Role.STUDENT },
+    handler: markCourseCompleted, // Add this
   });
 };
 

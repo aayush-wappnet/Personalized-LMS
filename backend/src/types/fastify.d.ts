@@ -22,6 +22,7 @@ declare module 'fastify' {
     quizService: QuizService; // Add this
     quizAttemptService: QuizAttemptService; // Add this
     moduleProgressService: ModuleProgressService; // Add this
+    enrollmentService: EnrollmentService; // Add this
   }
 
   interface FastifyRequest {

@@ -105,7 +105,7 @@ import { getEnrolledCourseById, getUserById } from '../../api/course.api';
 import ModuleList from '../../components/ModuleList.vue';
 import ContentList from '../../components/ContentList.vue';
 import { getModules } from '../../api/module.api'; // Added getContents import
-import { getContents } from '../../api/content.api'; // Added getContents import
+import { getContents } from '../../api/content'; // Added getContents import
 import type { EnrolledCourse } from '../../types/course';
 import type { Content, Module } from '../../types/module';
 

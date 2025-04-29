@@ -16,6 +16,15 @@
               </v-icon>
               {{ content.title }}
             </v-list-item-title>
+            <v-list-item-subtitle>{{ content.content }}</v-list-item-subtitle>
+            <v-list-item-action v-if="isInstructor">
+              <v-btn icon @click.stop="openEditContentDialog(content)">
+                <v-icon>mdi-pencil</v-icon>
+              </v-btn>
+              <v-btn icon @click.stop="confirmDeleteContent(content.id)">
+                <v-icon>mdi-delete</v-icon>
+              </v-btn>
+            </v-list-item-action>
           </v-list-item>
         </v-list>
       </v-col>
@@ -41,9 +50,9 @@
     </v-dialog>
 
     <!-- Add Content Button (Instructor) -->
-    <v-row v-if="isInstructor">
+    <v-row v-if="isInstructor" class="mt-4">
       <v-col>
-        <v-btn color="primary" @click="openAddContentDialog">
+        <v-btn color="primary" block @click="openAddContentDialog">
           <v-icon left>mdi-plus</v-icon>
           Add Content
         </v-btn>
@@ -61,19 +70,33 @@
             outlined
             dense
             class="mb-4"
+            :rules="[v => !!v || 'Title is required']"
+            required
           ></v-text-field>
-          <v-text-field
-            v-model="contentForm.fileUrl"
-            label="Video URL"
+          <v-textarea
+            v-model="contentForm.content"
+            label="Content Description"
             outlined
             dense
             class="mb-4"
-          ></v-text-field>
+            :rules="[v => !!v || 'Description is required']"
+            required
+          ></v-textarea>
+          <v-file-input
+            v-model="contentForm.file"
+            label="Video File"
+            outlined
+            dense
+            class="mb-4"
+            accept="video/*"
+            :rules="[v => !editMode || !v || !!v || 'Video file is required']"
+            @change="onFileChange"
+          ></v-file-input>
         </v-card-text>
         <v-card-actions>
           <v-spacer></v-spacer>
           <v-btn color="grey" text @click="contentDialog = false">Cancel</v-btn>
-          <v-btn color="primary" @click="saveContent">{{ editMode ? 'Update' : 'Add' }}</v-btn>
+          <v-btn color="primary" :disabled="!contentForm.title || !contentForm.content || (!editMode && !contentForm.file)" @click="saveContent">{{ editMode ? 'Update' : 'Add' }}</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -99,9 +122,9 @@
 import { ref, computed, watch } from 'vue';
 import { useAuthStore } from '../stores/auth.store';
 import { useToast } from '../composables/useToast';
-import { createContent, getContents, updateContent, deleteContent } from '../api/content.api';
+import { createContent, getContents, updateContent, deleteContent } from '../api/content';
 import type { Content } from '../types/module';
-import VideoPlayer from '../components/VideoPlayer.vue';
+import VideoPlayer from './VideoPlayer.vue';
 
 const props = defineProps<{
   moduleId: number | null;
@@ -121,7 +144,8 @@ const deleteContentDialog = ref(false);
 const editMode = ref(false);
 const contentForm = ref({
   title: '',
-  fileUrl: '',
+  content: '',
+  file: null as File | null,
   moduleId: 0,
 });
 const selectedContentId = ref<number | null>(null);
@@ -134,6 +158,8 @@ const progress = ref<{ [key: number]: boolean }>({});
 const isInstructor = computed(() => authStore.user?.role === 'instructor');
 
 const filteredContents = computed(() => {
+  console.log('Contents:', contents.value); // Debug
+  console.log('Content IDs:', props.contentIds); // Debug
   return contents.value.filter((content) => props.contentIds.includes(content.id));
 });
 
@@ -143,43 +169,55 @@ const fetchContents = async () => {
     return;
   }
   try {
-    contents.value = await getContents(props.moduleId);
+    const fetchedContents = await getContents(props.moduleId);
+    console.log('Fetched Contents:', fetchedContents); // Debug
+    contents.value = fetchedContents;
   } catch (err) {
-    showToast((err as Error).message, 'error');
+    showToast((err as Error).message || 'An error occurred.', 'error');
   }
+};
+
+const onFileChange = (file: File | null) => {
+  contentForm.value.file = file;
 };
 
 const openAddContentDialog = () => {
   editMode.value = false;
-  contentForm.value = { title: '', fileUrl: '', moduleId: props.moduleId || 0 };
+  contentForm.value = { title: '', content: '', file: null, moduleId: props.moduleId || 0 };
   contentDialog.value = true;
 };
 
 const openEditContentDialog = (content: Content) => {
   editMode.value = true;
   selectedContentId.value = content.id;
-  contentForm.value = { title: content.title, fileUrl: content.fileUrl || '', moduleId: content.module.id };
+  contentForm.value = { title: content.title, content: content.content || '', file: null, moduleId: content.module.id };
   contentDialog.value = true;
 };
 
 const saveContent = async () => {
   try {
+    const formData = new FormData();
+    formData.append('title', contentForm.value.title);
+    formData.append('content', contentForm.value.content);
+    if (contentForm.value.file) {
+      formData.append('file', contentForm.value.file);
+    }
+    formData.append('moduleId', contentForm.value.moduleId.toString());
+
     if (editMode.value) {
-      await updateContent(selectedContentId.value!, contentForm.value);
+      const updatedContent = await updateContent(selectedContentId.value!, formData);
       showToast('Content updated successfully!', 'success');
+      const index = contents.value.findIndex(c => c.id === updatedContent.id);
+      if (index !== -1) contents.value[index] = updatedContent;
     } else {
-      const newContent = await createContent({
-        title: contentForm.value.title,
-        fileUrl: contentForm.value.fileUrl,
-        moduleId: contentForm.value.moduleId,
-      });
+      const newContent = await createContent(formData);
       showToast('Content added successfully!', 'success');
       contents.value.push(newContent);
     }
     await fetchContents();
     contentDialog.value = false;
   } catch (err) {
-    showToast((err as Error).message, 'error');
+    showToast((err as Error).message || 'An error occurred.', 'error');
   }
 };
 
@@ -192,9 +230,9 @@ const deleteSelectedContent = async () => {
   try {
     await deleteContent(selectedContentId.value!);
     showToast('Content deleted successfully!', 'success');
-    await fetchContents();
+    contents.value = contents.value.filter(c => c.id !== selectedContentId.value);
   } catch (err) {
-    showToast((err as Error).message, 'error');
+    showToast((err as Error).message || 'An error occurred.', 'error');
   } finally {
     deleteContentDialog.value = false;
   }

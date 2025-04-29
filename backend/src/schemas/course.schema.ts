@@ -58,3 +58,9 @@ export const GetCourseByIdSchema = {
     id: Type.Number(),
   }),
 };
+
+export const MarkCourseCompletedSchema = {
+  params: Type.Object({
+    courseId: Type.Number(),
+  }),
+};

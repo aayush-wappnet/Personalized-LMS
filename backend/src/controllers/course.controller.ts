@@ -11,7 +11,8 @@ import {
   DeleteCourseSchema,
   GetEnrolledCourseByIdSchema,
   ApproveCourseSchema,
-  GetCourseByIdSchema
+  GetCourseByIdSchema,
+  MarkCourseCompletedSchema, // Add this
 } from '../schemas/course.schema';
 
 type CreateCourseBody = {
@@ -41,6 +42,7 @@ type ApproveCourseParams = Static<typeof ApproveCourseSchema.params>;
 type ApproveCourseQuery = Static<typeof ApproveCourseSchema.querystring>;
 type GetCoursesQuery = Static<typeof GetCoursesSchema.querystring>;
 type GetCourseByIdParams = Static<typeof GetCourseByIdSchema.params>;
+type MarkCourseCompletedParams = Static<typeof MarkCourseCompletedSchema.params>; // Add this
 
 export const createCourse = async (request: FastifyRequest<{ Body: CreateCourseBody }>, reply: FastifyReply) => {
   try {
@@ -220,12 +222,25 @@ export const enrollCourse = async (request: FastifyRequest<{ Body: Static<typeof
 export const getCourseById = async (request: FastifyRequest<{ Params: GetCourseByIdParams }>, reply: FastifyReply) => {
   try {
     const user = request.user as { id: number; role: Role };
-    if (user.role !== Role.STUDENT) {
-      throw new Error('Only students can view course details');
-    }
+    // if (user.role !== Role.STUDENT) {
+    //   throw new Error('Only students can view course details');
+    // }
     const course = await request.server.courseService.getCourseById(request.params.id);
     reply.send(course);
   } catch (err: any) {
     reply.code(404).send({ error: err.message });
+  }
+};
+
+export const markCourseCompleted = async (request: FastifyRequest<{ Params: MarkCourseCompletedParams }>, reply: FastifyReply) => {
+  try {
+    const user = request.user as { id: number; role: Role };
+    if (user.role !== Role.STUDENT) {
+      throw new Error('Only students can mark courses as completed');
+    }
+    const result = await request.server.courseService.markCourseCompleted(user.id, request.params.courseId);
+    reply.send(result);
+  } catch (err: any) {
+    reply.code(400).send({ error: err.message });
   }
 };

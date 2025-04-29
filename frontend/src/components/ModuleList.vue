@@ -46,6 +46,8 @@
             outlined
             dense
             class="mb-4"
+            :rules="[v => !!v || 'Title is required']"
+            required
           ></v-text-field>
           <v-text-field
             v-model="moduleForm.duration"
@@ -64,7 +66,7 @@
         <v-card-actions>
           <v-spacer></v-spacer>
           <v-btn color="grey" text @click="moduleDialog = false">Cancel</v-btn>
-          <v-btn color="primary" @click="saveModule">{{ editMode ? 'Update' : 'Add' }}</v-btn>
+          <v-btn color="primary" :disabled="!moduleForm.title" @click="saveModule">{{ editMode ? 'Update' : 'Add' }}</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -80,6 +82,8 @@
             outlined
             dense
             class="mb-4"
+            :rules="[v => !!v || 'Title is required']"
+            required
           ></v-text-field>
           <v-text-field
             v-model="moduleForm.duration"
@@ -98,7 +102,7 @@
         <v-card-actions>
           <v-spacer></v-spacer>
           <v-btn color="grey" text @click="editModuleDialog = false">Cancel</v-btn>
-          <v-btn color="primary" @click="saveModule">Update</v-btn>
+          <v-btn color="primary" :disabled="!moduleForm.title" @click="saveModule">Update</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -124,7 +128,7 @@ import { ref, computed, watch } from 'vue';
 import { useAuthStore } from '../stores/auth.store';
 import { useToast } from '../composables/useToast';
 import { createModule, getModules, updateModule, deleteModule } from '../api/module.api';
-import { getContents } from '../api/content.api';
+import { getContents } from '../api/content';
 import ContentList from './ContentList.vue';
 import type { Module, Content } from '../types/module';
 
@@ -222,7 +226,7 @@ const saveModule = async () => {
     moduleDialog.value = false;
     editModuleDialog.value = false;
   } catch (err) {
-    showToast((err as Error).message, 'error');
+    showToast((err as Error).message || 'An error occurred.', 'error');
   }
 };
 
@@ -253,7 +257,7 @@ const deleteSelectedModule = async () => {
       emit('selectModule', null);
       await fetchModules();
     } catch (err) {
-      showToast((err as Error).message, 'error');
+      showToast((err as Error).message || 'An error occurred.', 'error');
     } finally {
       deleteModuleDialog.value = false;
     }

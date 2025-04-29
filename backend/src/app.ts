@@ -22,6 +22,9 @@ import { QuizService } from './services/quiz.service'; // Add this
 import { QuizAttemptService } from './services/quizAttempt.service'; // Add this
 import { ModuleProgressService } from './services/moduleProgress.service'; // Add this
 
+import { AnalyticsService } from './services/analytics.service'; // Add this
+import analyticsRoutes from './routes/analytics.routes';
+
 export const app = Fastify({
   logger: process.env.NODE_ENV === 'development',
 });
@@ -51,6 +54,7 @@ app.register((instance, opts, done) => {
   const quizService = new QuizService(instance); // Add this
   const quizAttemptService = new QuizAttemptService(); // Add this
   const moduleProgressService = new ModuleProgressService(); // Add this
+  const analyticsService = new AnalyticsService(); // Add this
 
   instance.decorate('courseService', courseService);
   instance.decorate('moduleService', moduleService);
@@ -59,6 +63,7 @@ app.register((instance, opts, done) => {
   instance.decorate('quizService', quizService); // Add this
   instance.decorate('quizAttemptService', quizAttemptService); // Add this
   instance.decorate('moduleProgressService', moduleProgressService); // Add this
+  instance.decorate('analyticsService', analyticsService); // Add this
 
   instance.register(authRoutes, { prefix: '/api/auth' });
   instance.register(courseRoutes, { prefix: '/api' });
@@ -68,6 +73,7 @@ app.register((instance, opts, done) => {
   instance.register(quizRoutes, { prefix: '/api' }); // Add this
   instance.register(quizAttemptRoutes, { prefix: '/api' }); // Add this
   instance.register(moduleProgressRoutes, { prefix: '/api' }); // Add this
+  instance.register(analyticsRoutes, { prefix: '/api' }); // Add this
   done();
 });
 
