@@ -14,8 +14,11 @@
     <v-row v-else>
       <v-col cols="12">
         <h2 class="text-h5 primary--text mb-4">Take Quiz: {{ quiz?.title }}</h2>
-        <v-card v-if="quiz && quiz.questions?.length" class="pa-6 elevation-4">
-          <v-form ref="quizForm" v-model="valid" @submit.prevent="submitQuiz">
+        <v-card v-if="quiz && quiz.questions?.length" class="pa-6 elevation-4" :disabled="isQuizCompleted">
+          <v-alert v-if="isQuizCompleted" type="info" outlined>
+            This quiz has already been completed with a passing score.
+          </v-alert>
+          <v-form ref="quizForm" v-model="valid" @submit.prevent="submitQuiz" v-else>
             <v-list>
               <v-list-item v-for="question in quiz.questions" :key="question.id">
                 <v-list-item-title>{{ question.questionText }}</v-list-item-title>
@@ -62,6 +65,7 @@ import { useAuthStore } from '../../stores/auth.store';
 import { useToast } from '../../composables/useToast';
 import { getQuizzes } from '../../api/quiz.api';
 import { submitQuizAttempt } from '../../api/quizAttempt.api';
+import { getQuizAttempts } from '../../api/quizAttempt.api';
 import type { Quiz } from '../../types/quiz';
 import type { QuizAttempt } from '../../types/quizAttempt';
 
@@ -109,6 +113,8 @@ const courseId = computed(() => {
   return id;
 });
 
+const isQuizCompleted = ref(false);
+
 const fetchQuiz = async () => {
   if (!moduleId.value || !quizId.value) {
     showToast('Invalid module or quiz ID.', 'error');
@@ -126,6 +132,8 @@ const fetchQuiz = async () => {
     if (!quiz.value.questions?.length) {
       showToast('No questions available for this quiz.', 'info');
     }
+    const attempts = await getQuizAttempts(quizId.value);
+    isQuizCompleted.value = attempts.some(attempt => attempt.score >= 80);
   } catch (err) {
     error.value = (err as Error).message;
     showToast(error.value, 'error');
@@ -135,7 +143,7 @@ const fetchQuiz = async () => {
 };
 
 const submitQuiz = async () => {
-  if (!quiz.value || !valid.value) return;
+  if (!quiz.value || !valid.value || isQuizCompleted.value) return;
 
   submitting.value = true;
   try {
@@ -145,8 +153,10 @@ const submitQuiz = async () => {
     }));
     const attempt: QuizAttempt = await submitQuizAttempt(quiz.value.id, answerArray);
     score.value = attempt.score;
+    isQuizCompleted.value = attempt.score >= 80;
     showResultDialog.value = true;
-    emit('contentCompleted', quiz.value.id);
+    // Notify parent to update progress
+    window.parent.postMessage({ type: 'quizCompleted', quizId: quiz.value.id, score: attempt.score }, '*');
   } catch (err) {
     showToast((err as Error).message || 'An error occurred.', 'error');
   } finally {
@@ -163,10 +173,6 @@ const redirectToCourseDetails = () => {
   }
   router.push(`/courses/enrolled/${courseId.value}`);
 };
-
-const emit = defineEmits<{
-  (e: 'contentCompleted', contentId: number): void;
-}>();
 
 onMounted(() => {
   if (authStore.user?.role !== 'student') {

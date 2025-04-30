@@ -106,6 +106,7 @@
                   v-for="quiz in quizzes[module.id]"
                   :key="quiz.id"
                   @click="openQuiz(module.id, quiz)"
+                  :disabled="quizProgress[quiz.id]"
                 >
                   <v-list-item-title>
                     <v-checkbox
@@ -116,6 +117,9 @@
                       class="ma-0 pa-0 d-inline-flex"
                     ></v-checkbox>
                     {{ quiz.title }}
+                    <span v-if="quizProgress[quiz.id]" class="ml-2 text-caption grey--text">
+                      (Completed)
+                    </span>
                   </v-list-item-title>
                   <v-list-item-subtitle>{{ quiz.description }}</v-list-item-subtitle>
                 </v-list-item>
@@ -149,7 +153,7 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, onUnmounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '../../stores/auth.store';
 import { useToast } from '../../composables/useToast';
@@ -157,9 +161,13 @@ import { getEnrolledCourseById, getUserById } from '../../api/course.api';
 import { getModules } from '../../api/module.api';
 import { getContents } from '../../api/content';
 import { getQuizzes } from '../../api/quiz.api';
+import { getQuizAttempts } from '../../api/quizAttempt.api';
+import { getModuleProgress, updateModuleProgress } from '../../api/moduleProgress.api.ts';
 import type { EnrolledCourse } from '../../types/course';
 import type { Module, Content } from '../../types/module';
 import type { Quiz } from '../../types/quiz';
+import type { QuizAttempt } from '../../types/quizAttempt';
+import type { ModuleProgress } from '../../types/moduleProgress';
 import VideoPlayer from '../../components/VideoPlayer.vue';
 
 const route = useRoute();
@@ -193,6 +201,19 @@ const courseId = computed(() => {
   }
   return id;
 });
+
+// Load progress from localStorage
+const loadProgressFromLocalStorage = () => {
+  const savedProgress = localStorage.getItem(`course_${courseId.value}_progress`);
+  if (savedProgress) {
+    progress.value = JSON.parse(savedProgress);
+  }
+};
+
+// Save progress to localStorage
+const saveProgressToLocalStorage = () => {
+  localStorage.setItem(`course_${courseId.value}_progress`, JSON.stringify(progress.value));
+};
 
 const fetchCourseDetails = async () => {
   if (authStore.user?.role !== 'student') {
@@ -234,11 +255,14 @@ const fetchModules = async () => {
   }
   try {
     modules.value = await getModules(courseId.value);
+    // Load progress after modules are fetched to ensure content IDs are available
+    loadProgressFromLocalStorage();
     for (const module of modules.value) {
       await fetchModuleData(module.id);
+      await fetchModuleProgress(module.id);
       await calculateModuleDuration(module.id);
     }
-    await updateProgress();
+    await syncModuleProgress();
   } catch (err) {
     showToast((err as Error).message, 'error');
   }
@@ -252,7 +276,7 @@ const fetchModuleData = async (moduleId: number) => {
 
     for (const quiz of quizData) {
       try {
-        const attempts = await getQuizAttempts(quiz.id);
+        const attempts: QuizAttempt[] = await getQuizAttempts(quiz.id);
         quizProgress.value[quiz.id] = attempts.some(attempt => attempt.score >= 80);
       } catch (err) {
         console.error(`Failed to fetch quiz attempts for quiz ${quiz.id}:`, err);
@@ -261,6 +285,43 @@ const fetchModuleData = async (moduleId: number) => {
     }
   } catch (err) {
     showToast((err as Error).message, 'error');
+  }
+};
+
+const fetchModuleProgress = async (moduleId: number) => {
+  try {
+    const response: ModuleProgress = await getModuleProgress(moduleId);
+    moduleProgress.value[moduleId] = response.isCompleted || false;
+  } catch (err) {
+    console.error(`Failed to fetch module progress for module ${moduleId}:`, err);
+    moduleProgress.value[moduleId] = false;
+  }
+};
+
+const syncModuleProgressWithApi = async (moduleId: number) => {
+  try {
+    const contentIds = moduleContents.value[moduleId]?.map(c => c.id) || [];
+    const quizIds = quizzes.value[moduleId]?.map(q => q.id) || [];
+    const totalItems = contentIds.length + quizIds.length;
+    const completedContent = contentIds.filter(id => progress.value[id] || false).length;
+    const completedQuizzes = quizIds.filter(id => quizProgress.value[id] || false).length;
+    const completedItems = completedContent + completedQuizzes;
+    const progressPercentage = totalItems > 0 ? (completedItems / totalItems) * 100 : 0;
+    const isCompleted = progressPercentage === 100;
+
+    await updateModuleProgress(moduleId, {
+      progressPercentage,
+      isCompleted,
+    });
+
+    moduleProgress.value[moduleId] = isCompleted;
+    if (isCompleted && !previouslyCompletedModules.value.has(moduleId)) {
+      showToast(`Module ${modules.value.find(m => m.id === moduleId)?.title || 'Unknown'} completed!`, 'success');
+      previouslyCompletedModules.value.add(moduleId);
+    }
+  } catch (err) {
+    console.error(`Failed to update module progress for module ${moduleId}:`, err);
+    showToast('Failed to update module progress.', 'error');
   }
 };
 
@@ -306,7 +367,10 @@ const handleVideoCompleted = (contentId: number) => {
   if (!progress.value[contentId]) {
     progress.value[contentId] = true;
     showToast(`Content ${contentId} completed!`, 'success');
-    updateProgress();
+    saveProgressToLocalStorage(); // Save to localStorage
+    if (currentModuleId.value) {
+      syncModuleProgressWithApi(currentModuleId.value);
+    }
   }
 };
 
@@ -329,7 +393,7 @@ const playNextVideo = (currentContentId: number) => {
 };
 
 const openQuiz = (moduleId: number, quiz: Quiz) => {
-  console.log('Quiz data:', { id: quiz.id, moduleId }); // Debug log
+  console.log('Quiz data:', { id: quiz.id, moduleId });
   if (typeof moduleId !== 'number' || !quiz.id) {
     console.error('Invalid quiz data:', { moduleId, quiz });
     showToast('Invalid quiz data. Please try again.', 'error');
@@ -339,32 +403,34 @@ const openQuiz = (moduleId: number, quiz: Quiz) => {
   router.push(`/student/quiz/${moduleId}?quizId=${quiz.id}`);
 };
 
-const updateProgress = async () => {
+const syncModuleProgress = async () => {
   for (const module of modules.value) {
-    const contentIds = moduleContents.value[module.id]?.map(c => c.id) || [];
-    const quizIds = quizzes.value[module.id]?.map(q => q.id) || [];
-    const hasContentOrQuizzes = contentIds.length > 0 || quizIds.length > 0;
+    await syncModuleProgressWithApi(module.id);
+  }
+};
 
-    if (!hasContentOrQuizzes) {
-      moduleProgress.value[module.id] = false;
-      continue;
+// Listen for quiz completion messages from StudentQuiz.vue
+const handleQuizCompletion = async (event: MessageEvent) => {
+  if (event.data.type === 'quizCompleted') {
+    const { quizId, score } = event.data;
+    quizProgress.value[quizId] = score >= 80;
+    // Find the module that contains this quiz
+    const moduleId = Object.keys(quizzes.value).find(modId => 
+      quizzes.value[Number(modId)].some((q: Quiz) => q.id === quizId)
+    );
+    if (moduleId) {
+      await syncModuleProgressWithApi(Number(moduleId));
     }
-
-    const allContentCompleted = contentIds.length > 0 ? contentIds.every(id => progress.value[id]) : true;
-    const allQuizzesCompleted = quizIds.length > 0 ? quizIds.every(id => quizProgress.value[id]) : true;
-    const isModuleCompleted = allContentCompleted && allQuizzesCompleted;
-
-    if (isModuleCompleted && !previouslyCompletedModules.value.has(module.id)) {
-      showToast(`Module ${module.title} completed!`, 'success');
-      previouslyCompletedModules.value.add(module.id);
-    }
-
-    moduleProgress.value[module.id] = isModuleCompleted;
   }
 };
 
 onMounted(() => {
   fetchCourseDetails();
+  window.addEventListener('message', handleQuizCompletion);
+});
+
+onUnmounted(() => {
+  window.removeEventListener('message', handleQuizCompletion);
 });
 </script>
 
