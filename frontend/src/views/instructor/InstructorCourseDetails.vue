@@ -40,13 +40,13 @@
                   <p class="text-caption grey--text">
                     Last updated: {{ new Date(course.updatedAt).toLocaleDateString() }}
                   </p>
-                  <v-chip
+                  <!-- <v-chip
                     :color="getChipColor(course.approvalStatus)"
                     small
                     class="ma-2 rounded-lg"
                   >
                     {{ course.approvalStatus || 'Pending' }}
-                  </v-chip>
+                  </v-chip> -->
                 </v-card-text>
                 <v-card-actions>
                   <v-btn color="primary" text @click="$router.go(-1)">Back to My Courses</v-btn>

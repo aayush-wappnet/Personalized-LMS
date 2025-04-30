@@ -19,9 +19,9 @@ export const submitQuizAttempt = async (request: FastifyRequest<{ Body: { quizId
 export const getQuizAttempts = async (request: FastifyRequest<{ Params: { quizId: number } }>, reply: FastifyReply) => {
   try {
     const user = request.user as { id: number; role: Role };
-    if (user.role !== Role.INSTRUCTOR && user.role !== Role.ADMIN) {
-      throw new Error('Only instructors or admins can view quiz attempts');
-    }
+    // if (user.role !== Role.INSTRUCTOR && user.role !== Role.ADMIN) {
+    //   throw new Error('Only instructors or admins can view quiz attempts');
+    // }
     const quizAttemptService = new QuizAttemptService();
     const attempts = await quizAttemptService.getQuizAttempts(request.params.quizId);
     reply.send(attempts);

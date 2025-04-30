@@ -15,7 +15,7 @@ const quizAttemptRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.get('/quiz-attempts/:quizId', {
     schema: GetQuizAttemptsSchema,
     preHandler: authGuard,
-    config: { requiredRole: Role.INSTRUCTOR },
+    config: { requiredRole: undefined },
     handler: getQuizAttempts,
   });
 };

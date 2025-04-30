@@ -10,16 +10,45 @@
           <v-icon
             left
             :class="{ 'rotate-icon': expandedModules[module.id] }"
-            @click.stop="fetchContents(module.id)"
+            @click.stop="fetchModuleData(module.id)"
           >
             mdi-chevron-right
           </v-icon>
+          <v-checkbox
+            v-model="moduleProgress[module.id]"
+            :disabled="true"
+            :color="moduleProgress[module.id] ? 'success' : 'grey'"
+            hide-details
+          ></v-checkbox>
           {{ module.title }} ({{ moduleDuration(module) }})
         </v-list-item-title>
         <v-list-item-subtitle v-if="module.description">{{ module.description }}</v-list-item-subtitle>
         <v-expansion-panel v-model="expandedModules[module.id]">
           <v-expansion-panel-content>
-            <ContentList :module-id="module.id" :content-ids="moduleContents[module.id]?.map(c => c.id) || []" @contentCompleted="onContentCompleted" />
+            <ContentList
+              :module-id="module.id"
+              :content-ids="moduleContents[module.id]?.map(c => c.id) || []"
+              @contentCompleted="onContentCompleted"
+            />
+            <v-card class="mt-4" v-if="quizzes[module.id]?.length">
+              <v-card-title>Quizzes</v-card-title>
+              <v-list>
+                <v-list-item
+                  v-for="quiz in quizzes[module.id]"
+                  :key="quiz.id"
+                  @click.stop="openQuiz(quiz)"
+                >
+                  <v-list-item-title>
+                    <v-icon left :color="quizProgress[quiz.id] ? 'success' : 'grey'">
+                      {{ quizProgress[quiz.id] ? 'mdi-check-circle' : 'mdi-circle-outline' }}
+                    </v-icon>
+                    {{ quiz.title }}
+                  </v-list-item-title>
+                  <v-list-item-subtitle>{{ quiz.description }}</v-list-item-subtitle>
+                </v-list-item>
+              </v-list>
+            </v-card>
+            <v-alert v-else type="info" outlined>No quizzes available.</v-alert>
           </v-expansion-panel-content>
         </v-expansion-panel>
       </v-list-item>
@@ -129,8 +158,11 @@ import { useAuthStore } from '../stores/auth.store';
 import { useToast } from '../composables/useToast';
 import { createModule, getModules, updateModule, deleteModule } from '../api/module.api';
 import { getContents } from '../api/content';
+import { getQuizzes } from '../api/quiz.api';
 import ContentList from './ContentList.vue';
 import type { Module, Content } from '../types/module';
+import type { Quiz } from '../types/quiz';
+import { useRouter } from 'vue-router';
 
 const props = defineProps<{
   courseId: number;
@@ -138,8 +170,10 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: 'selectModule', module: Module | null): void;
+  (e: 'contentCompleted', contentId: number): void;
 }>();
 
+const router = useRouter();
 const authStore = useAuthStore();
 const { showToast } = useToast();
 
@@ -156,6 +190,9 @@ const moduleForm = ref({
 });
 const moduleContents = ref<{ [key: number]: Content[] }>({});
 const expandedModules = ref<{ [key: number]: boolean }>({});
+const quizzes = ref<{ [key: number]: Quiz[] }>({});
+const moduleProgress = ref<{ [key: number]: boolean }>({}); // Track module completion
+const quizProgress = ref<{ [key: number]: boolean }>({});  // Track quiz completion
 
 const isInstructor = computed(() => authStore.user?.role === 'instructor');
 
@@ -170,16 +207,23 @@ const fetchModules = async () => {
       selectedModule.value = modules.value[0];
       emit('selectModule', selectedModule.value);
     }
+    // Fetch quizzes and contents for all modules
+    for (const module of modules.value) {
+      await fetchModuleData(module.id);
+    }
+    updateProgress();
   } catch (err) {
     showToast((err as Error).message, 'error');
   }
 };
 
-const fetchContents = async (moduleId: number) => {
+const fetchModuleData = async (moduleId: number) => {
   try {
-    const contents = await getContents(moduleId);
+    const [contents, quizData] = await Promise.all([getContents(moduleId), getQuizzes(moduleId)]);
     moduleContents.value[moduleId] = contents;
-    expandedModules.value[moduleId] = true; // Expand the panel
+    quizzes.value[moduleId] = quizData;
+    expandedModules.value[moduleId] = true;
+    updateProgress();
   } catch (err) {
     showToast((err as Error).message, 'error');
   }
@@ -188,8 +232,8 @@ const fetchContents = async (moduleId: number) => {
 const toggleModule = (module: Module) => {
   selectedModule.value = module;
   emit('selectModule', module);
-  if (!moduleContents.value[module.id]) {
-    fetchContents(module.id);
+  if (!moduleContents.value[module.id] || !quizzes.value[module.id]) {
+    fetchModuleData(module.id);
   } else {
     expandedModules.value[module.id] = !expandedModules.value[module.id];
   }
@@ -197,6 +241,30 @@ const toggleModule = (module: Module) => {
 
 const onContentCompleted = (contentId: number) => {
   showToast(`Content ${contentId} completed!`, 'success');
+  progress.value[contentId] = true;
+  updateProgress();
+};
+
+const openQuiz = (quiz: Quiz) => {
+  if (authStore.user?.role === 'student') {
+    router.push(`/student/quiz/${quiz.moduleId}?quizId=${quiz.id}`);
+  }
+};
+
+const updateProgress = () => {
+  modules.value.forEach(module => {
+    const contentIds = moduleContents.value[module.id]?.map(c => c.id) || [];
+    const quizIds = quizzes.value[module.id]?.map(q => q.id) || [];
+    const allContentCompleted = contentIds.every(id => progress.value[id]);
+    const allQuizzesCompleted = quizIds.every(id => quizProgress.value[id]);
+    moduleProgress.value[module.id] = allContentCompleted && allQuizzesCompleted;
+
+    quizIds.forEach(quizId => {
+      // Check if quiz is completed (e.g., submitted with score >= 80%)
+      // This requires fetching quiz attempts, which we'll assume for now
+      quizProgress.value[quizId] = false; // Placeholder until quiz attempt data is integrated
+    });
+  });
 };
 
 const openAddModuleDialog = () => {
@@ -267,6 +335,8 @@ const deleteSelectedModule = async () => {
 const moduleDuration = (module: Module) => {
   return module.description?.match(/\d+\/\d+hr\d+min/)?.[0] || 'N/A';
 };
+
+const progress = ref<{ [key: number]: boolean }>({});
 
 watch(
   () => props.courseId,

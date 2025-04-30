@@ -1,3 +1,4 @@
+```vue
 <template>
   <v-container class="mt-6">
     <v-row>
@@ -24,7 +25,7 @@
       </v-col>
     </v-row>
     <v-row v-else>
-      <v-col cols="12" md="8">
+      <v-col cols="12">
         <v-card class="pa-6 elevation-4 mb-6">
           <v-row>
             <v-col cols="12" md="12">
@@ -54,43 +55,94 @@
           </v-row>
         </v-card>
 
-        <!-- Content Section with Checkbox Dropdown -->
-        <v-row v-if="selectedModule">
-          <v-col cols="12">
-            <h2 class="text-h5 primary--text mb-4">Module Contents</h2>
-            <v-select
-              v-model="selectedContentIds"
-              :items="selectedModuleContents"
-              item-title="title"
-              item-value="id"
-              label="Select Contents"
-              multiple
-              outlined
-              dense
-              chips
-              small-chips
-              @change="onContentSelect"
-            >
-              <template v-slot:selection="{ item, index }">
-                <v-chip v-if="index < 2">
-                  <span>{{ item.title }}</span>
-                </v-chip>
-                <span v-if="index === 2" class="grey--text text-caption ml-2">
-                  (+{{ selectedContentIds.length - 2 }} more)
-                </span>
-              </template>
-            </v-select>
-            <ContentList :module-id="selectedModule.id" :content-ids="selectedContentIds" @contentCompleted="onContentCompleted" />
-          </v-col>
-        </v-row>
-      </v-col>
-      <v-col cols="12" md="4">
-        <!-- Module List on the Right -->
-        <v-card class="pa-4 elevation-4" height="100%">
-          <h2 class="text-h6 primary--text mb-4">Modules</h2>
-          <ModuleList v-if="courseId" :course-id="courseId" @selectModule="onModuleSelect" />
-          <v-alert v-else type="error" outlined>Course ID is not available.</v-alert>
-        </v-card>
+        <!-- Modules Section -->
+        <h2 class="text-h5 primary--text mb-4">Modules</h2>
+        <v-expansion-panels v-model="expandedModuleIndex">
+          <v-expansion-panel v-for="module in modules" :key="module.id">
+            <v-expansion-panel-title>
+              <v-icon
+                left
+                :class="{ 'rotate-icon': expandedModuleIndex === modules.indexOf(module) }"
+              >
+                mdi-chevron-right
+              </v-icon>
+              <v-checkbox
+                v-model="moduleProgress[module.id]"
+                :disabled="true"
+                :color="moduleProgress[module.id] ? 'success' : 'grey'"
+                hide-details
+                class="ma-0 pa-0"
+              ></v-checkbox>
+              {{ module.title }} ({{ moduleDurations[module.id] || 'Calculating...' }})
+            </v-expansion-panel-title>
+            <v-expansion-panel-content>
+              <!-- Contents -->
+              <v-list v-if="moduleContents[module.id]?.length">
+                <v-subheader>Contents</v-subheader>
+                <v-list-item
+                  v-for="content in moduleContents[module.id]"
+                  :key="content.id"
+                  @click="openVideoDialog(content)"
+                >
+                  <v-list-item-title>
+                    <v-checkbox
+                      v-model="progress[content.id]"
+                      :disabled="true"
+                      :color="progress[content.id] ? 'success' : 'grey'"
+                      hide-details
+                      class="ma-0 pa-0 d-inline-flex"
+                    ></v-checkbox>
+                    {{ content.title }}
+                  </v-list-item-title>
+                  <v-list-item-subtitle>{{ content.content }}</v-list-item-subtitle>
+                </v-list-item>
+              </v-list>
+              <v-alert v-else type="info" outlined>No contents available.</v-alert>
+
+              <!-- Quizzes -->
+              <v-list v-if="quizzes[module.id]?.length">
+                <v-subheader>Quizzes</v-subheader>
+                <v-list-item
+                  v-for="quiz in quizzes[module.id]"
+                  :key="quiz.id"
+                  @click="openQuiz(module.id, quiz)"
+                >
+                  <v-list-item-title>
+                    <v-checkbox
+                      v-model="quizProgress[quiz.id]"
+                      :disabled="true"
+                      :color="quizProgress[quiz.id] ? 'success' : 'grey'"
+                      hide-details
+                      class="ma-0 pa-0 d-inline-flex"
+                    ></v-checkbox>
+                    {{ quiz.title }}
+                  </v-list-item-title>
+                  <v-list-item-subtitle>{{ quiz.description }}</v-list-item-subtitle>
+                </v-list-item>
+              </v-list>
+              <v-alert v-else type="info" outlined>No quizzes available.</v-alert>
+            </v-expansion-panel-content>
+          </v-expansion-panel>
+        </v-expansion-panels>
+
+        <!-- Video Player Dialog -->
+        <v-dialog v-model="videoDialog" max-width="800">
+          <v-card>
+            <v-card-title>{{ selectedContent?.title }}</v-card-title>
+            <v-card-text>
+              <VideoPlayer
+                :src="selectedContent?.fileUrl || ''"
+                :content-id="selectedContent?.id || 0"
+                @contentCompleted="handleVideoCompleted"
+                @nextVideo="playNextVideo"
+              />
+            </v-card-text>
+            <v-card-actions>
+              <v-spacer></v-spacer>
+              <v-btn color="primary" text @click="videoDialog = false">Close</v-btn>
+            </v-card-actions>
+          </v-card>
+        </v-dialog>
       </v-col>
     </v-row>
   </v-container>
@@ -98,18 +150,20 @@
 
 <script lang="ts" setup>
 import { ref, onMounted, computed } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '../../stores/auth.store';
 import { useToast } from '../../composables/useToast';
 import { getEnrolledCourseById, getUserById } from '../../api/course.api';
-import ModuleList from '../../components/ModuleList.vue';
-import ContentList from '../../components/ContentList.vue';
-import { getModules } from '../../api/module.api'; // Added getContents import
-import { getContents } from '../../api/content'; // Added getContents import
+import { getModules } from '../../api/module.api';
+import { getContents } from '../../api/content';
+import { getQuizzes } from '../../api/quiz.api';
 import type { EnrolledCourse } from '../../types/course';
-import type { Content, Module } from '../../types/module';
+import type { Module, Content } from '../../types/module';
+import type { Quiz } from '../../types/quiz';
+import VideoPlayer from '../../components/VideoPlayer.vue';
 
 const route = useRoute();
+const router = useRouter();
 const authStore = useAuthStore();
 const { showToast } = useToast();
 
@@ -118,15 +172,24 @@ const instructorName = ref<string | null>(null);
 const instructorEmail = ref<string | null>(null);
 const loading = ref(false);
 const error = ref<string | null>(null);
-const selectedModule = ref<Module | null>(null);
-const selectedContentIds = ref<number[]>([]);
-const completedContents = ref<number[]>([]);
+const modules = ref<Module[]>([]);
+const moduleContents = ref<{ [key: number]: Content[] }>({});
+const quizzes = ref<{ [key: number]: Quiz[] }>({});
+const expandedModuleIndex = ref<number | undefined>(undefined);
+const progress = ref<{ [key: number]: boolean }>({}); // Content completion
+const quizProgress = ref<{ [key: number]: boolean }>({}); // Quiz completion
+const moduleProgress = ref<{ [key: number]: boolean }>({}); // Module completion
+const previouslyCompletedModules = ref(new Set<number>());
+const videoDialog = ref(false);
+const selectedContent = ref<Content | null>(null);
+const currentModuleId = ref<number | null>(null);
+const moduleDurations = ref<{ [key: number]: string }>({}); // Store calculated durations
 
 const courseId = computed(() => {
   const id = Number(route.params.id);
-  if (isNaN(id)) {
-    console.error('Course ID is invalid or undefined:', route.params.id);
-    return 0; // Fallback to 0 or handle appropriately
+  if (isNaN(id) || id <= 0) {
+    console.error('Invalid courseId:', route.params.id);
+    return 0;
   }
   return id;
 });
@@ -134,6 +197,7 @@ const courseId = computed(() => {
 const fetchCourseDetails = async () => {
   if (authStore.user?.role !== 'student') {
     showToast('Access denied. Only students can view enrolled course details.', 'error');
+    router.push('/');
     return;
   }
 
@@ -152,6 +216,9 @@ const fetchCourseDetails = async () => {
       instructorName.value = instructor.userName;
       instructorEmail.value = instructor.email;
     }
+
+    localStorage.setItem('courseId', courseId.value.toString());
+    await fetchModules();
   } catch (err) {
     error.value = (err as Error).message;
     showToast(error.value, 'error');
@@ -160,59 +227,161 @@ const fetchCourseDetails = async () => {
   }
 };
 
-const onModuleSelect = (module: Module | null) => {
-  selectedModule.value = module;
-  selectedContentIds.value = [];
-  completedContents.value = []; // Reset completed contents for new module
-};
-
-const selectedModuleContents = computed(() => {
-  if (!selectedModule.value) return [];
-  return contents.value
-    .filter((c) => c.module.id === selectedModule.value!.id)
-    .map((c) => ({
-      id: c.id,
-      title: c.title,
-    }));
-});
-
-const onContentSelect = (contentIds: number[]) => {
-  selectedContentIds.value = contentIds;
-};
-
-const onContentCompleted = async (contentId: number) => {
-  completedContents.value.push(contentId);
-  // Check if all selected contents in the module are completed
-  if (selectedModule.value) {
-    const allContents = contents.value.filter((c) => c.module.id === selectedModule.value!.id);
-    const allCompleted = selectedContentIds.value.every((id) =>
-      completedContents.value.includes(id)
-    );
-    if (allCompleted && allContents.length === selectedContentIds.value.length) {
-      showToast('Module completed successfully!', 'success');
-    }
-  }
-};
-
-// Fetch contents for all modules (optional, can be removed if handled by ModuleList)
-const contents = ref<Content[]>([]);
-const fetchAllContents = async () => {
+const fetchModules = async () => {
   if (!courseId.value) {
-    showToast('Cannot fetch contents: Invalid course ID.', 'error');
+    showToast('Cannot fetch modules: Invalid course ID.', 'error');
     return;
   }
   try {
-    const allModules = await getModules(courseId.value);
-    const contentPromises = allModules.map((module) => getContents(module.id));
-    const allContents = (await Promise.all(contentPromises)).flat();
-    contents.value = allContents;
+    modules.value = await getModules(courseId.value);
+    for (const module of modules.value) {
+      await fetchModuleData(module.id);
+      await calculateModuleDuration(module.id);
+    }
+    await updateProgress();
   } catch (err) {
     showToast((err as Error).message, 'error');
   }
 };
 
+const fetchModuleData = async (moduleId: number) => {
+  try {
+    const [contents, quizData] = await Promise.all([getContents(moduleId), getQuizzes(moduleId)]);
+    moduleContents.value[moduleId] = contents;
+    quizzes.value[moduleId] = quizData;
+
+    for (const quiz of quizData) {
+      try {
+        const attempts = await getQuizAttempts(quiz.id);
+        quizProgress.value[quiz.id] = attempts.some(attempt => attempt.score >= 80);
+      } catch (err) {
+        console.error(`Failed to fetch quiz attempts for quiz ${quiz.id}:`, err);
+        quizProgress.value[quiz.id] = false;
+      }
+    }
+  } catch (err) {
+    showToast((err as Error).message, 'error');
+  }
+};
+
+const calculateModuleDuration = async (moduleId: number) => {
+  const contents = moduleContents.value[moduleId] || [];
+  let totalDuration = 0;
+
+  for (const content of contents) {
+    if (content.fileUrl) {
+      const duration = await getVideoDuration(content.fileUrl);
+      totalDuration += duration;
+    }
+  }
+
+  const minutes = Math.floor(totalDuration / 60);
+  const seconds = Math.floor(totalDuration % 60);
+  moduleDurations.value[moduleId] = `${minutes}m ${seconds}s`;
+};
+
+const getVideoDuration = (url: string): Promise<number> => {
+  return new Promise((resolve) => {
+    const video = document.createElement('video');
+    video.preload = 'metadata';
+    video.src = url;
+    video.onloadedmetadata = () => {
+      resolve(video.duration);
+    };
+    video.onerror = () => {
+      resolve(0); // Fallback to 0 if video fails to load
+    };
+  });
+};
+
+const openVideoDialog = (content: Content) => {
+  if (content.fileUrl) {
+    selectedContent.value = content;
+    currentModuleId.value = content.module.id;
+    videoDialog.value = true;
+  }
+};
+
+const handleVideoCompleted = (contentId: number) => {
+  if (!progress.value[contentId]) {
+    progress.value[contentId] = true;
+    showToast(`Content ${contentId} completed!`, 'success');
+    updateProgress();
+  }
+};
+
+const playNextVideo = (currentContentId: number) => {
+  if (!currentModuleId.value) return;
+
+  const contents = moduleContents.value[currentModuleId.value] || [];
+  const currentIndex = contents.findIndex(content => content.id === currentContentId);
+  if (currentIndex === -1 || currentIndex === contents.length - 1) {
+    videoDialog.value = false; // No more videos in this module
+    return;
+  }
+
+  const nextContent = contents[currentIndex + 1];
+  if (nextContent.fileUrl) {
+    selectedContent.value = nextContent;
+  } else {
+    videoDialog.value = false;
+  }
+};
+
+const openQuiz = (moduleId: number, quiz: Quiz) => {
+  console.log('Quiz data:', { id: quiz.id, moduleId }); // Debug log
+  if (typeof moduleId !== 'number' || !quiz.id) {
+    console.error('Invalid quiz data:', { moduleId, quiz });
+    showToast('Invalid quiz data. Please try again.', 'error');
+    return;
+  }
+  console.log('Navigating to quiz:', { moduleId, quizId: quiz.id });
+  router.push(`/student/quiz/${moduleId}?quizId=${quiz.id}`);
+};
+
+const updateProgress = async () => {
+  for (const module of modules.value) {
+    const contentIds = moduleContents.value[module.id]?.map(c => c.id) || [];
+    const quizIds = quizzes.value[module.id]?.map(q => q.id) || [];
+    const hasContentOrQuizzes = contentIds.length > 0 || quizIds.length > 0;
+
+    if (!hasContentOrQuizzes) {
+      moduleProgress.value[module.id] = false;
+      continue;
+    }
+
+    const allContentCompleted = contentIds.length > 0 ? contentIds.every(id => progress.value[id]) : true;
+    const allQuizzesCompleted = quizIds.length > 0 ? quizIds.every(id => quizProgress.value[id]) : true;
+    const isModuleCompleted = allContentCompleted && allQuizzesCompleted;
+
+    if (isModuleCompleted && !previouslyCompletedModules.value.has(module.id)) {
+      showToast(`Module ${module.title} completed!`, 'success');
+      previouslyCompletedModules.value.add(module.id);
+    }
+
+    moduleProgress.value[module.id] = isModuleCompleted;
+  }
+};
+
 onMounted(() => {
   fetchCourseDetails();
-  fetchAllContents();
 });
 </script>
+
+<style scoped>
+.rounded-lg {
+  border-radius: 16px !important;
+}
+
+.rotate-icon {
+  transform: rotate(90deg);
+  transition: transform 0.3s;
+}
+
+.d-inline-flex {
+  display: inline-flex;
+  vertical-align: middle;
+  margin-right: 8px;
+}
+</style>
+```
