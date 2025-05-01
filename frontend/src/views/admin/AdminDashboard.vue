@@ -21,6 +21,50 @@
       </v-col>
     </v-row>
     <v-row v-else>
+      <!-- Top Performers Section -->
+      <v-col cols="12" md="6">
+        <v-card class="pa-4 elevation-4">
+          <v-card-title class="text-h6">
+            <v-icon left color="primary">mdi-star</v-icon>
+            Top Instructor
+          </v-card-title>
+          <v-card-text>
+            <div class="text-h5 primary--text">{{ topInstructor.userName }}</div>
+            <div>Total Enrollments: {{ topInstructor.totalEnrollments }}</div>
+            <div>Completed Enrollments: {{ topInstructor.completedEnrollments }}</div>
+          </v-card-text>
+        </v-card>
+      </v-col>
+
+      <v-col cols="12" md="6">
+        <v-card class="pa-4 elevation-4">
+          <v-card-title class="text-h6">
+            <v-icon left color="primary">mdi-trophy</v-icon>
+            Top Student
+          </v-card-title>
+          <v-card-text>
+            <div class="text-h5 primary--text">{{ topStudent.userName }}</div>
+            <div>Completed Courses: {{ topStudent.completedCourses }}</div>
+            <div>Points: {{ topStudent.points }}</div>
+            <div>
+              Badges:
+              <v-chip
+                v-for="(badge, index) in topStudent.badges"
+                :key="index"
+                small
+                class="ma-1"
+                color="primary"
+              >
+                {{ badge }}
+              </v-chip>
+            </div>
+          </v-card-text>
+        </v-card>
+      </v-col>
+    </v-row>
+
+    <!-- Stats Section -->
+    <v-row v-if="!loading && !error">
       <!-- Total Courses -->
       <v-col cols="12" sm="6" md="3">
         <v-card class="pa-4 elevation-4">
@@ -159,8 +203,8 @@ import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '../../stores/auth.store';
 import { useToast } from '../../composables/useToast';
-import { getDashboardStats } from '../../api/analytics.api';
-import type { AdminDashboardStats } from '../../api/analytics.api';
+import { getDashboardStats, getTopInstructor, getTopStudent } from '../../api/analytics.api';
+import type { AdminDashboardStats, TopInstructor, TopStudent } from '../../api/analytics.api';
 
 const router = useRouter();
 const authStore = useAuthStore();
@@ -180,6 +224,19 @@ const stats = ref<AdminDashboardStats>({
   coursesApproved: 0,
   coursesRejected: 0,
 });
+const topInstructor = ref<TopInstructor>({
+  id: 0,
+  userName: 'N/A',
+  totalEnrollments: 0,
+  completedEnrollments: 0,
+});
+const topStudent = ref<TopStudent>({
+  id: 0,
+  userName: 'N/A',
+  completedCourses: 0,
+  points: 0,
+  badges: [],
+});
 
 const fetchDashboardStats = async () => {
   if (authStore.user?.role !== 'admin') {
@@ -190,13 +247,21 @@ const fetchDashboardStats = async () => {
 
   loading.value = true;
   try {
-    const data = await getDashboardStats();
-    if ('totalUsers' in data) {
+    const [dashboardData, instructorData, studentData] = await Promise.all([
+      getDashboardStats(),
+      getTopInstructor(),
+      getTopStudent(),
+    ]);
+
+    if ('totalUsers' in dashboardData) {
       // Ensure the response matches AdminDashboardStats
-      stats.value = data as AdminDashboardStats;
+      stats.value = dashboardData as AdminDashboardStats;
     } else {
       throw new Error('Invalid dashboard data for admin');
     }
+
+    topInstructor.value = instructorData;
+    topStudent.value = studentData;
   } catch (err) {
     error.value = (err as Error).message;
     showToast(error.value, 'error');

@@ -73,7 +73,6 @@ export class AnalyticsService {
     const stats: any = {};
 
     if (role === Role.ADMIN) {
-      // Admin stats
       stats.totalCourses = await this.courseRepository.count();
       stats.totalUsers = await this.userRepository.count();
       stats.totalEnrollments = await this.enrollmentRepository.count();
@@ -81,7 +80,6 @@ export class AnalyticsService {
       stats.totalInstructors = await this.userRepository.count({ where: { role: Role.INSTRUCTOR } });
       stats.totalStudents = await this.userRepository.count({ where: { role: Role.STUDENT } });
 
-      // Active users (users with at least one enrollment in the last 30 days)
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
       const activeUsers = await this.enrollmentRepository
@@ -91,12 +89,10 @@ export class AnalyticsService {
         .getRawOne();
       stats.activeUsers = parseInt(activeUsers.count, 10) || 0;
 
-      // Course approval status breakdown
       stats.coursesPendingApproval = await this.courseRepository.count({ where: { approvalStatus: 'PENDING' } });
       stats.coursesApproved = await this.courseRepository.count({ where: { approvalStatus: 'APPROVED' } });
       stats.coursesRejected = await this.courseRepository.count({ where: { approvalStatus: 'REJECTED' } });
     } else if (role === Role.INSTRUCTOR) {
-      // Instructor stats (scoped to their courses)
       stats.totalCourses = await this.courseRepository.count({ where: { instructor: { id: userId } } });
       stats.totalEnrollments = await this.enrollmentRepository.count({
         where: { course: { instructor: { id: userId } } },
@@ -105,14 +101,12 @@ export class AnalyticsService {
         where: { course: { instructor: { id: userId } }, isCompleted: true },
       });
 
-      // Unique students enrolled in their courses
       const enrollments = await this.enrollmentRepository.find({
         where: { course: { instructor: { id: userId } } },
         relations: ['student'],
       });
       stats.totalStudents = new Set(enrollments.map(e => e.student.id)).size;
 
-      // Course approval status breakdown for their courses
       stats.coursesPendingApproval = await this.courseRepository.count({
         where: { instructor: { id: userId }, approvalStatus: 'PENDING' },
       });
@@ -123,7 +117,6 @@ export class AnalyticsService {
         where: { instructor: { id: userId }, approvalStatus: 'REJECTED' },
       });
 
-      // Average quiz score across their courses
       const quizAttempts = await this.quizAttemptRepository.find({
         where: { quiz: { module: { course: { instructor: { id: userId } } } } },
       });
@@ -133,5 +126,47 @@ export class AnalyticsService {
     }
 
     return stats;
+  }
+
+  async getTopInstructor() {
+    const instructors = await this.userRepository.find({ where: { role: Role.INSTRUCTOR }, relations: ['courses'] });
+    const instructorStats = await Promise.all(instructors.map(async (instructor) => {
+      const enrollments = await this.enrollmentRepository.count({ where: { course: { instructor: { id: instructor.id } } } });
+      const completedEnrollments = await this.enrollmentRepository.count({
+        where: { course: { instructor: { id: instructor.id } }, isCompleted: true },
+      });
+      return {
+        id: instructor.id,
+        userName: instructor.userName,
+        totalEnrollments: enrollments,
+        completedEnrollments,
+      };
+    }));
+
+    return instructorStats.reduce((top: { id: number; userName: string; totalEnrollments: number; completedEnrollments: number } | null, current) => {
+      const topScore = top ? (top.totalEnrollments + top.completedEnrollments) : 0;
+      const currentScore = current.totalEnrollments + current.completedEnrollments;
+      return currentScore > topScore ? current : top;
+    }, null);
+  }
+
+  async getTopStudent() {
+    const students = await this.userRepository.find({ where: { role: Role.STUDENT }, relations: ['enrollments'] });
+    const studentStats = await Promise.all(students.map(async (student) => {
+      const completedEnrollments = await this.enrollmentRepository.count({
+        where: { student: { id: student.id }, isCompleted: true },
+      });
+      return {
+        id: student.id,
+        userName: student.userName,
+        completedCourses: completedEnrollments,
+        points: student.points || 0,
+        badges: student.badges ? JSON.parse(student.badges) : [],
+      };
+    }));
+
+    return studentStats.reduce((top: { id: number; userName: string; completedCourses: number; points: number; badges: string[] } | null, current) => {
+      return top === null || current.completedCourses > top.completedCourses ? current : top;
+    }, null);
   }
 }

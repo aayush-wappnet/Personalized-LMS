@@ -15,3 +15,11 @@ export const GetStudentAnalyticsSchema = {
 export const GetDashboardStatsSchema = {
   // No params or querystring needed for this endpoint
 };
+
+export const GetTopInstructorSchema = {
+  // No params or querystring needed for this endpoint
+};
+
+export const GetTopStudentSchema = {
+  // No params or querystring needed for this endpoint
+};

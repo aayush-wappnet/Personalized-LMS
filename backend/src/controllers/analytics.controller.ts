@@ -40,3 +40,31 @@ export const getDashboardStats = async (request: FastifyRequest, reply: FastifyR
     reply.code(403).send({ error: err.message });
   }
 };
+
+export const getTopInstructor = async (request: FastifyRequest, reply: FastifyReply) => {
+  try {
+    const user = request.user as { id: number; role: Role };
+    if (user.role !== Role.ADMIN) {
+      throw new Error('Only admins can view the top instructor');
+    }
+    const analyticsService = new AnalyticsService();
+    const topInstructor = await analyticsService.getTopInstructor();
+    reply.send(topInstructor);
+  } catch (err: any) {
+    reply.code(404).send({ error: err.message });
+  }
+};
+
+export const getTopStudent = async (request: FastifyRequest, reply: FastifyReply) => {
+  try {
+    const user = request.user as { id: number; role: Role };
+    if (user.role !== Role.ADMIN) {
+      throw new Error('Only admins can view the top student');
+    }
+    const analyticsService = new AnalyticsService();
+    const topStudent = await analyticsService.getTopStudent();
+    reply.send(topStudent);
+  } catch (err: any) {
+    reply.code(404).send({ error: err.message });
+  }
+};
