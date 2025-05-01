@@ -9,14 +9,14 @@ const getAuthHeaders = () => {
   };
 };
 
-export const createQuiz = async (moduleId: number, title: string): Promise<Quiz> => {
+export const createQuiz = async (moduleId: number, title: string, description?: string): Promise<Quiz> => {
   const response = await fetch(`${API_BASE_URL}/quizzes`, {
     method: 'POST',
     headers: {
       ...getAuthHeaders(),
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ moduleId, title }),
+    body: JSON.stringify({ moduleId, title, description }),
   });
 
   if (!response.ok) {
@@ -41,14 +41,14 @@ export const getQuizzes = async (moduleId: number): Promise<Quiz[]> => {
   return response.json();
 };
 
-export const updateQuiz = async (id: number, title: string): Promise<Quiz> => {
+export const updateQuiz = async (id: number, title: string, description?: string): Promise<Quiz> => {
   const response = await fetch(`${API_BASE_URL}/quizzes/${id}`, {
     method: 'PUT',
     headers: {
       ...getAuthHeaders(),
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ title }),
+    body: JSON.stringify({ title, description }),
   });
 
   if (!response.ok) {

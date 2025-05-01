@@ -67,6 +67,12 @@ const routes = [
     meta: { requiresAuth: true },
   },
   {
+    path: '/instructor/add-quiz',
+    name: 'AddQuiz',
+    component: () => import('../views/instructor/AddQuiz.vue'),
+    meta: { requiresAuth: true },
+  },
+  {
     path: '/admin/courses',
     name: 'AdminCourses',
     component: () => import('../views/admin/AdminCourses.vue'),

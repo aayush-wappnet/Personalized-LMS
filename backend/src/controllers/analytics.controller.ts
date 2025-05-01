@@ -29,3 +29,14 @@ export const getStudentAnalytics = async (request: FastifyRequest<{ Params: { us
     reply.code(404).send({ error: err.message });
   }
 };
+
+export const getDashboardStats = async (request: FastifyRequest, reply: FastifyReply) => {
+  try {
+    const user = request.user as { id: number; role: Role };
+    const analyticsService = new AnalyticsService();
+    const stats = await analyticsService.getDashboardStats(user.id, user.role);
+    reply.send(stats);
+  } catch (err: any) {
+    reply.code(403).send({ error: err.message });
+  }
+};

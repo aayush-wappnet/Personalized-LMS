@@ -11,3 +11,7 @@ export const GetStudentAnalyticsSchema = {
     userId: Type.Number(),
   }),
 };
+
+export const GetDashboardStatsSchema = {
+  // No params or querystring needed for this endpoint
+};

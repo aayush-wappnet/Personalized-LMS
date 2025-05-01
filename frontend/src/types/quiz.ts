@@ -12,7 +12,14 @@ export interface Question {
   id: number;
   quizId: number;
   questionText: string;
-  options: { id: number; text: string; isCorrect: boolean }[];
+  options: Option[];
+  correctOptionId?: number; // Add this to track the correct option index
   createdAt: string;
   updatedAt: string;
+}
+
+export interface Option {
+  id: number;
+  text: string;
+  isCorrect: boolean;
 }
