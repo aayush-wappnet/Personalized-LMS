@@ -73,11 +73,22 @@ const routes = [
     meta: { requiresAuth: true },
   },
   {
+    path: '/instructor/dashboard',
+    name: 'InstructorDashboard',
+    component: () => import('../views/instructor/InstructorDashboard.vue'),
+    meta: { requiresAuth: true },
+  },
+  {
     path: '/admin/courses',
     name: 'AdminCourses',
     component: () => import('../views/admin/AdminCourses.vue'),
     meta: { requiresAuth: true },
   },
+  {
+    path: '/admin/dashboard',
+    name: 'AdminDashboard',
+    component: () => import('../views/admin/AdminDashboard.vue'),
+  }
 ];
 
 const router = createRouter({

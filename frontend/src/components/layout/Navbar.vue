@@ -47,7 +47,7 @@
 
     <!-- Instructor Menu -->
     <template v-if="isAuthenticated && user?.role === 'instructor'">
-      <v-btn to="/dashboard" text class="mr-4">
+      <v-btn to="/instructor/dashboard" text class="mr-4">
         <v-icon left>mdi-view-dashboard</v-icon>
         Dashboard
       </v-btn>
@@ -67,7 +67,7 @@
 
     <!-- Admin Menu -->
     <template v-if="isAuthenticated && user?.role === 'admin'">
-      <v-btn to="/dashboard" text class="mr-4">
+      <v-btn to="/admin/dashboard" text class="mr-4">
         <v-icon left>mdi-view-dashboard</v-icon>
         Dashboard
       </v-btn>
