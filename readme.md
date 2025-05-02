@@ -104,4 +104,4 @@ The complete API documentation is available on Postman:
 # 📽️ AI-Based Personalized Learning Management System - Demo Video  
 
 Watch the demo of the **AI-Based Personalized Learning Management System**:  
-🔗 **[Click here to watch the demo]([https://drive.google.com/file/d/1UOWps0XXWWmrnetPL-d8MZU6X9ce0cMU/view?usp=sharing](https://drive.google.com/file/d/186VvZQIIoWbvGx9Bp9u7gutdh6PvGmxX/view?usp=sharing))** 
+🔗 **[Click here to watch the demo](https://drive.google.com/file/d/1UOWps0XXWWmrnetPL-d8MZU6X9ce0cMU/view?usp=sharing)** 
