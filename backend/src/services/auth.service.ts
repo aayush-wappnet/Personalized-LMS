@@ -40,9 +40,26 @@ export class AuthService {
   }
 
   async getProfile(userId: number) {
-    const user = await this.userRepository.findOne({ where: { id: userId }, select: ['id', 'userName', 'email', 'role'] });
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+      select: ['id', 'userName', 'email', 'role', 'points', 'badges'],
+    });
     if (!user) throw new Error('User not found');
-    return { id: user.id, userName: user.userName, email: user.email, role: user.role };
+
+    const profile: any = {
+      id: user.id,
+      userName: user.userName,
+      email: user.email,
+      role: user.role,
+    };
+
+    // Include points and badges only for students
+    if (user.role === Role.STUDENT) {
+      profile.points = user.points || 0;
+      profile.badges = user.badges ? JSON.parse(user.badges) : [];
+    }
+
+    return profile;
   }
 
   async getAllUsers() {

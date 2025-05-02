@@ -15,4 +15,6 @@ export interface AuthRegister {
     userName: string;
     email: string;
     role: 'student' | 'instructor' | 'admin';
+    points?: number; // Optional since it may not apply to all roles
+    badges?: string[]; // Optional array of badges
   }
