@@ -15,29 +15,30 @@ import { ModuleService } from './services/module.service';
 import contentRoutes from './routes/content.routes';
 import { ContentService } from './services/content.service';
 import moduleRoutes from './routes/module.routes';
-import quizRoutes from './routes/quiz.routes'; // Add this
-import quizAttemptRoutes from './routes/quizAttempt.routes'; // Add this
-import moduleProgressRoutes from './routes/moduleProgress.routes'; // Add this
-import { QuizService } from './services/quiz.service'; // Add this
-import { QuizAttemptService } from './services/quizAttempt.service'; // Add this
-import { ModuleProgressService } from './services/moduleProgress.service'; // Add this
-
-import { AnalyticsService } from './services/analytics.service'; // Add this
+import quizRoutes from './routes/quiz.routes';
+import quizAttemptRoutes from './routes/quizAttempt.routes';
+import moduleProgressRoutes from './routes/moduleProgress.routes';
+import { QuizService } from './services/quiz.service';
+import { QuizAttemptService } from './services/quizAttempt.service';
+import { ModuleProgressService } from './services/moduleProgress.service';
+import { AnalyticsService } from './services/analytics.service';
 import analyticsRoutes from './routes/analytics.routes';
+import recommendationRoutes from './routes/recommendation.routes'; // Add this
+import { RecommendationService } from './services/recommendation.service'; // Add this
 
 export const app = Fastify({
   logger: process.env.NODE_ENV === 'development',
 });
 
 app.register(fastifyCors, {
-  origin: true, // Allows all origins; adjust as needed (e.g., 'http://localhost:3000')
+  origin: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 });
 
 app.register(fastifyMultipart, {
   limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
-  attachFieldsToBody: 'keyValues', // Parse fields as key-value pairs instead of objects with circular references
+  attachFieldsToBody: 'keyValues',
 });
 
 app.register(databasePlugin);
@@ -51,29 +52,32 @@ app.register((instance, opts, done) => {
   const moduleService = new ModuleService(instance);
   const contentService = new ContentService(instance);
   const notificationService = new NotificationService(instance);
-  const quizService = new QuizService(instance); // Add this
-  const quizAttemptService = new QuizAttemptService(); // Add this
-  const moduleProgressService = new ModuleProgressService(); // Add this
-  const analyticsService = new AnalyticsService(); // Add this
+  const quizService = new QuizService(instance);
+  const quizAttemptService = new QuizAttemptService();
+  const moduleProgressService = new ModuleProgressService();
+  const analyticsService = new AnalyticsService();
+  const recommendationService = new RecommendationService(); // Add this
 
   instance.decorate('courseService', courseService);
   instance.decorate('moduleService', moduleService);
   instance.decorate('contentService', contentService);
   instance.decorate('notificationService', notificationService);
-  instance.decorate('quizService', quizService); // Add this
-  instance.decorate('quizAttemptService', quizAttemptService); // Add this
-  instance.decorate('moduleProgressService', moduleProgressService); // Add this
-  instance.decorate('analyticsService', analyticsService); // Add this
+  instance.decorate('quizService', quizService);
+  instance.decorate('quizAttemptService', quizAttemptService);
+  instance.decorate('moduleProgressService', moduleProgressService);
+  instance.decorate('analyticsService', analyticsService);
+  instance.decorate('recommendationService', recommendationService); // Add this
 
   instance.register(authRoutes, { prefix: '/api/auth' });
   instance.register(courseRoutes, { prefix: '/api' });
   instance.register(moduleRoutes, { prefix: '/api' });
   instance.register(contentRoutes, { prefix: '/api' });
   instance.register(notificationRoutes, { prefix: '/api' });
-  instance.register(quizRoutes, { prefix: '/api' }); // Add this
-  instance.register(quizAttemptRoutes, { prefix: '/api' }); // Add this
-  instance.register(moduleProgressRoutes, { prefix: '/api' }); // Add this
-  instance.register(analyticsRoutes, { prefix: '/api' }); // Add this
+  instance.register(quizRoutes, { prefix: '/api' });
+  instance.register(quizAttemptRoutes, { prefix: '/api' });
+  instance.register(moduleProgressRoutes, { prefix: '/api' });
+  instance.register(analyticsRoutes, { prefix: '/api' });
+  instance.register(recommendationRoutes, { prefix: '/api' }); // Add this
   done();
 });
 

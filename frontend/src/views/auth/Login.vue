@@ -110,7 +110,7 @@ const onSubmit = handleSubmit(async (values: AuthLogin) => {
     if (authStore.user?.role === 'student') {
       router.push('/');
     } else {
-      router.push('/dashboard');
+      router.push(`${authStore.user?.role}/dashboard`);
     }
   } catch (error) {
     showToast('Login failed. Please check your credentials.', 'error');
@@ -124,6 +124,25 @@ const onBlur = () => {};
 </script>
 
 <style scoped>
+.v-container.fill-height {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background-color: #e5ebf0;
+}
+
+.v-row {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.v-col {
+  display: flex;
+  justify-content: center;
+}
+
 .login-card {
   border-radius: 12px;
   border: 1px solid #e0e0e0;

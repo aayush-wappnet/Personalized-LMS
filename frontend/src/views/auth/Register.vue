@@ -124,6 +124,25 @@ const onSubmit = handleSubmit(async (values: AuthRegister) => {
 </script>
 
 <style scoped>
+.v-container.fill-height {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background-color: #e5ebf0;
+}
+
+.v-row {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.v-col {
+  display: flex;
+  justify-content: center;
+}
+
 .register-card {
   border-radius: 8px;
   border: 1px solid #e0e0e0;
